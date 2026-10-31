@@ -528,8 +528,18 @@ async function play(events, disp) {
         await wait(500);
         break;
       }
-      case 'revive': floatText(e.uid, '부활!', 'heal'); sfx.heal(); addLog(`${nm}${josa(nm, '이', '가')} 다시 일어났다!`); render(); await wait(300); break;
-      case 'summon': addLog(`${nm}${josa(nm, '이', '가')} 나타났다!`); render(); Object.assign(disp, snapshot()); markSeen(u.species); await wait(400); break;
+      case 'revive':
+        disp[e.uid] = { hp: e.amount, bond: 0 };
+        rerenderWith(disp);
+        floatText(e.uid, '부활!', 'heal'); sfx.heal(); addLog(`${nm}${josa(nm, '이', '가')} 다시 일어났다!`);
+        await wait(300);
+        break;
+      case 'summon':
+        disp[e.uid] = { hp: u.maxHp, bond: 0 };
+        rerenderWith(disp);
+        addLog(`${nm}${josa(nm, '이', '가')} 나타났다!`); markSeen(u.species);
+        await wait(400);
+        break;
       case 'escape': addLog('연막 속으로 도망쳤다!'); await wait(400); break;
       case 'synergy': addLog(`💞 인연 효과 — <b>${e.name}</b>!`); await wait(350); break;
       case 'turn':
@@ -538,6 +548,12 @@ async function play(events, disp) {
       default: break;
     }
   }
+}
+
+/** 새 카드가 생겨 다시 그려야 할 때, 연출 중인 표시값은 그대로 유지한다 */
+function rerenderWith(disp) {
+  render();
+  for (const uid of Object.keys(disp)) if (findUnit(S.battle, Number(uid))) retint(Number(uid), disp);
 }
 
 function talkLine(u) {
@@ -563,8 +579,7 @@ async function runAction(fn) {
   S.ui.busy = true;
   S.ui.pendingSkill = S.ui.pendingItem = null; S.ui.pendingTalk = false;
   // 버튼만 비활성화한 화면에서 연출
-  render();
-  for (const [uid, d] of Object.entries(disp)) { if (findUnit(S.battle, Number(uid))) retint(Number(uid), disp); void d; }
+  rerenderWith(disp);
   await play(ev, disp);
   S.ui.busy = false;
   autoSelect();
