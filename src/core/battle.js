@@ -2,6 +2,7 @@
 // 모든 결과를 events 배열로 돌려줘서 UI가 순서대로 연출한다.
 import { SKILLS, STATUSES, SPECIES, ITEMS, elementMultiplier } from './data.js';
 import { createUnit, unlockedSkills } from './units.js';
+import { activeSynergies } from './banter.js';
 
 export const MAX_ENEMIES = 4;
 export const TURN_LIMIT = 30; // 이 턴이 지나면 해가 저물어 적이 돌아간다
@@ -38,6 +39,19 @@ export function createBattle(run, rng, enemies, kind = 'normal') {
   }
   if (has(run, 'bell')) {
     for (const a of livingAllies(b)) applyStatus(a, 'regen', { turns: 2 }, ev);
+  }
+  // 인연 효과
+  b.synergies = activeSynergies(run.party);
+  for (const syn of b.synergies) {
+    if (!syn.start) continue;
+    ev.push({ type: 'synergy', id: syn.id, name: syn.name });
+    for (const eff of syn.start) {
+      const targets = livingAllies(b).filter((a) => eff.who === 'all' || syn.members.includes(a.species));
+      for (const a of targets) {
+        if (eff.shield) addShield(a, shieldValue(a, eff.shield), ev);
+        else applyStatus(a, eff.status, { turns: eff.turns }, ev);
+      }
+    }
   }
   b.events.push(...ev);
   for (const e of enemies) rollIntent(b, rng, e);
@@ -207,8 +221,12 @@ export function receptivity(enemy) {
   return r;
 }
 
+function synergyMul(run, key) {
+  return activeSynergies(run.party).reduce((m, syn) => m * (syn[key] || 1), 1);
+}
+
 function charmAmount(run, att, enemy, power) {
-  let amt = power * (att.cha / 10) * receptivity(enemy);
+  let amt = power * (att.cha / 10) * receptivity(enemy) * synergyMul(run, 'charmMul');
   if (has(run, 'ribbon')) amt *= 1.25;
   if (has(run, 'heartstone')) amt *= 1.4;
   return amt;

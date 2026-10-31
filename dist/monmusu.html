@@ -161,6 +161,20 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 400; text-wrap: bala
 .mini .pic { width: 52px; height: 52px; border-radius: 10px; overflow: hidden; }
 .mini.fainted .pic { filter: grayscale(1) brightness(0.7); }
 
+/* ── 수다 / 인연 ─────────────────────── */
+.synergy-box { padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.synergy-box b { font-family: var(--font-display); font-weight: 400; color: var(--heart); }
+.chat { display: flex; flex-direction: column; gap: 6px; }
+.chat-line { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 8px; align-items: end; }
+.chat-pic { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: var(--bough-2); display: block; }
+.chat-pic svg { width: 100%; height: 100%; display: block; }
+.chat-bubble { background: var(--moon); color: #2a2233; border-radius: 12px 12px 12px 3px; padding: 6px 10px; font-size: 13px; line-height: 1.4; }
+.chat-bubble b { font-family: var(--font-display); font-weight: 400; color: var(--lantern-deep); margin-right: 2px; }
+.tag.on { border-color: var(--heart); color: var(--heart); }
+.recruit-pic.big { width: 190px; }
+.boss-intro { border-color: var(--danger); }
+.tut { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+
 /* ── 바 ──────────────────────────────── */
 .bar { position: relative; height: 9px; border-radius: 6px; background: rgba(0, 0, 0, 0.35); overflow: hidden; }
 .bar > i { position: absolute; inset: 0 auto 0 0; border-radius: 6px; transition: width 0.35s ease; }
@@ -508,7 +522,7 @@ const SKILLS = Object.fromEntries([
 const SPECIES = {
   slime: {
     name: '슬라임', given: '포요', element: 'water', role: '탱커',
-    base: { hp: 58, atk: 10, def: 9, cha: 10, spd: 6 }, grow: { hp: 8.5, atk: 1.7, def: 1.6, cha: 1.2, spd: 0.4 },
+    base: { hp: 62, atk: 10, def: 9, cha: 11, spd: 6 }, grow: { hp: 8.5, atk: 1.7, def: 1.6, cha: 1.2, spd: 0.4 },
     skills: ['slime_tackle', 'slime_hug', 'slime_wall', 'slime_absorb'],
     gift: 'candy', bond: 100,
     look: { skin: '#8fd3ff', skinAlpha: 0.85, hair: '#5ab8ff', hairStyle: 'drip', eye: '#1d5fa8', outfit: '#3e8fd9', features: ['slime'] },
@@ -1049,12 +1063,108 @@ function startNodes(map) {
 
 return { MAP_ROWS, MAP_COLS, NODE_TYPES, generateMap, startNodes };
 })();
+// ── src/core/banter.js ──
+const __m_src_core_banter_js = (() => {
+// 인연 효과(파티 시너지)와 지도 위 수다
+const SYNERGIES = [
+  {
+    id: 'water_plant', name: '물 주는 사이', members: ['slime', 'mandrake'],
+    desc: '전투 시작 시 아군 전체 재생 2턴.', start: [{ who: 'all', status: 'regen', turns: 2 }],
+    talk: [['slime', '도라야, 물 줄까? 내 몸에서 뽀용~'], ['mandrake', '…고마워. 근데 좀 끈적해.']],
+  },
+  {
+    id: 'foxfire', name: '도깨비불 콤비', members: ['kitsune', 'ghost'],
+    desc: '전투 시작 시 두 사람 공격↑ 2턴.', start: [{ who: 'members', status: 'atkUp', turns: 2 }],
+    talk: [['ghost', '코하쿠, 오늘 밤에 누구 놀래킬까?'], ['kitsune', '후후, 저 등불지기 어때?']],
+  },
+  {
+    id: 'duet', name: '하늘과 바다의 듀엣', members: ['harpy', 'mermaid'],
+    desc: '매혹으로 얻는 호감도 +20%.', charmMul: 1.2,
+    talk: [['harpy', '마리나! 화음 넣어줘!'], ['mermaid', '♪ 좋아, 셋에 시작이야~ ♪']],
+  },
+  {
+    id: 'knight_saint', name: '기사와 성녀', members: ['dullahan', 'unicorn'],
+    desc: '전투 시작 시 아군 전체에 보호막.', start: [{ who: 'all', shield: 0.9 }],
+    talk: [['dullahan', '루미 공, 그대의 등은 이 리제가 지키겠소.'], ['unicorn', '후훗, 머리부터 꼭 챙겨주세요.']],
+  },
+  {
+    id: 'treasure', name: '보물 사냥단', members: ['mimic', 'catsith'],
+    desc: '획득 골드 +25%.', goldMul: 1.25,
+    talk: [['catsith', '미미, 너 안에 뭐 들었냥?'], ['mimic', '비, 비밀이야! 손 넣지 마!']],
+  },
+  {
+    id: 'hot_cold', name: '냉혈과 열혈', members: ['lamia', 'salamander'],
+    desc: '전투 시작 시 두 사람 공격↑ 2턴.', start: [{ who: 'members', status: 'atkUp', turns: 2 }],
+    talk: [['lamia', '살라, 조금만 기대도 돼? 따뜻해서…'], ['salamander', '어, 어어!? 마음대로 해!']],
+  },
+  {
+    id: 'stone_web', name: '단단한 거미집', members: ['golem', 'arachne'],
+    desc: '전투 시작 시 아군 전체 방어↑.', start: [{ who: 'all', status: 'defUp', turns: 1 }],
+    talk: [['arachne', '고로, 팔 좀 빌려줘. 실 감게.'], ['golem', '……팔. 대여. 승인.']],
+  },
+  {
+    id: 'forest_family', name: '숲의 가족', members: ['dryad', 'mandrake'],
+    desc: '전투 시작 시 아군 전체 재생 3턴.', start: [{ who: 'all', status: 'regen', turns: 3 }],
+    talk: [['dryad', '도라, 땅속은 춥지 않았니?'], ['mandrake', '여, 여왕님…! 괜찮아요!']],
+  },
+  {
+    id: 'flame_kin', name: '불꽃의 권속', members: ['dragon', 'salamander'],
+    desc: '전투 시작 시 아군 전체 공격↑ 2턴.', start: [{ who: 'all', status: 'atkUp', turns: 2 }],
+    talk: [['salamander', '공주님! 브레스 연습 같이 해요!'], ['dragon', '흥, 따라올 수 있으면 와 봐라!']],
+  },
+];
+
+function activeSynergies(party) {
+  const here = new Set(party.filter((u) => !u.fainted).map((u) => u.species));
+  return SYNERGIES.filter((s) => s.members.every((m) => here.has(m)));
+}
+
+// 혼잣말
+const IDLE = {
+  slime: ['배고파~ 저 버섯 먹어도 돼?', '뽀용! 오늘도 말랑말랑!'],
+  harpy: ['저 위로 날아가서 길 봐줄까?', '삐삐~ 바람 냄새가 좋아!'],
+  kitsune: ['꼬리 손질 좀 해줄래? …아무것도 아니야.', '유부 먹고 싶다…'],
+  mandrake: ['흙이 촉촉해서 좋다…', '혹시 날 뽑을 생각은 아니지?'],
+  lamia: ['해가 좀 더 났으면 좋겠어.', '후아암… 조금만 감고 자도 돼?'],
+  arachne: ['네 목도리, 반쯤 떴어.', '이 숲, 실 걸기 좋은 나무가 많네.'],
+  dullahan: ['경계 태세 유지! …머리 어디 뒀더라.', '기사는 지치지 않는다. …조금 쉴까.'],
+  mermaid: ['♪ 라라~ 다음 호수는 언제 나와?', '발이 없으니까 업어줘~'],
+  salamander: ['빨리 다음 싸움 하자! 몸이 근질근질해!', '꼬리가 뜨거워! 기분 좋다는 뜻이야!'],
+  ghost: ['나 오늘 세 명 놀래켰어!', '같이 다니니까 하나도 안 외로워.'],
+  unicorn: ['다친 곳은 없나요?', '이 길 끝에 빛이 있을 거예요.'],
+  mimic: ['방금 반짝이는 거 봤어! 저기!', '뚜껑 안은 비밀이야.'],
+  golem: ['……보행. 계속.', '……꽃. 발견. 밟지 않음.'],
+  catsith: ['냐아… 졸려.', '그 주머니, 아까보다 가벼워진 것 같지 않냥?'],
+  dryad: ['숲이 조금씩 숨을 쉬는구나.', '천 년 만의 산책이로군.'],
+  dragon: ['내 보물창고에 넣을 만한 건 없나?', '흥, 걷는 건 귀찮지만 참아주지.'],
+  witch: ['…달이 예쁘네.', '목요일엔 차 마시는 거야. 잊지 마.'],
+};
+
+/** 지도 화면에서 보여줄 수다 한 토막 (층마다 바뀐다) */
+function pickBanter(run) {
+  const living = run.party.filter((u) => !u.fainted);
+  if (!living.length) return null;
+  const syn = activeSynergies(run.party).filter((s) => s.talk);
+  const k = (run.floor * 7 + run.act * 13 + run.seed) >>> 0;
+  if (syn.length && k % 3 === 0) {
+    const s = syn[k % syn.length];
+    return s.talk.map(([sp, line]) => ({ uid: living.find((u) => u.species === sp)?.uid, line })).filter((x) => x.uid != null);
+  }
+  const u = living[k % living.length];
+  const lines = IDLE[u.species] || [];
+  if (!lines.length) return null;
+  return [{ uid: u.uid, line: lines[(k >> 2) % lines.length] }];
+}
+
+return { SYNERGIES, activeSynergies, IDLE, pickBanter };
+})();
 // ── src/core/battle.js ──
 const __m_src_core_battle_js = (() => {
 // 전투 엔진. DOM을 전혀 모르는 순수 로직이며,
 // 모든 결과를 events 배열로 돌려줘서 UI가 순서대로 연출한다.
 const { SKILLS, STATUSES, SPECIES, ITEMS, elementMultiplier } = __m_src_core_data_js;
 const { createUnit, unlockedSkills } = __m_src_core_units_js;
+const { activeSynergies } = __m_src_core_banter_js;
 
 const MAX_ENEMIES = 4;
 const TURN_LIMIT = 30; // 이 턴이 지나면 해가 저물어 적이 돌아간다
@@ -1091,6 +1201,19 @@ function createBattle(run, rng, enemies, kind = 'normal') {
   }
   if (has(run, 'bell')) {
     for (const a of livingAllies(b)) applyStatus(a, 'regen', { turns: 2 }, ev);
+  }
+  // 인연 효과
+  b.synergies = activeSynergies(run.party);
+  for (const syn of b.synergies) {
+    if (!syn.start) continue;
+    ev.push({ type: 'synergy', id: syn.id, name: syn.name });
+    for (const eff of syn.start) {
+      const targets = livingAllies(b).filter((a) => eff.who === 'all' || syn.members.includes(a.species));
+      for (const a of targets) {
+        if (eff.shield) addShield(a, shieldValue(a, eff.shield), ev);
+        else applyStatus(a, eff.status, { turns: eff.turns }, ev);
+      }
+    }
   }
   b.events.push(...ev);
   for (const e of enemies) rollIntent(b, rng, e);
@@ -1260,8 +1383,12 @@ function receptivity(enemy) {
   return r;
 }
 
+function synergyMul(run, key) {
+  return activeSynergies(run.party).reduce((m, syn) => m * (syn[key] || 1), 1);
+}
+
 function charmAmount(run, att, enemy, power) {
-  let amt = power * (att.cha / 10) * receptivity(enemy);
+  let amt = power * (att.cha / 10) * receptivity(enemy) * synergyMul(run, 'charmMul');
   if (has(run, 'ribbon')) amt *= 1.25;
   if (has(run, 'heartstone')) amt *= 1.4;
   return amt;
@@ -1664,6 +1791,7 @@ const { SPECIES, ITEMS, RELICS, ACT_POOLS, BOSSES, GIFT_IDS } = __m_src_core_dat
 const { createUnit, refreshStats, gainXp, xpToNext, levelUp, resetUids } = __m_src_core_units_js;
 const { generateMap, startNodes, MAP_ROWS } = __m_src_core_map_js;
 const { createBattle, alive } = __m_src_core_battle_js;
+const { activeSynergies } = __m_src_core_banter_js;
 
 const ACTS = 3;
 const ACT_NAMES = ['속삭이는 숲', '불꽃 골짜기', '달이 진 성'];
@@ -1783,7 +1911,10 @@ function enterNode(run, nodeId) {
 }
 
 // ── 전투 보상 ───────────────────────────────────────────────
-function goldMul(run) { return run.relics.includes('coin') ? 1.35 : 1; }
+function goldMul(run) {
+  const syn = activeSynergies(run.party).reduce((m, x) => m * (x.goldMul || 1), 1);
+  return (run.relics.includes('coin') ? 1.35 : 1) * syn;
+}
 
 function addGold(run, amount) {
   const g = Math.round(amount);
@@ -2838,6 +2969,7 @@ const { alive, canAct, usableSkills, needsTarget, validTargets, allyAct, keeperT
 const { autoTurn, befriendTarget } = __m_src_core_ai_js;
 const { pickEvent, eventById } = __m_src_core_events_js;
 const { NODE_TYPES } = __m_src_core_map_js;
+const { activeSynergies, pickBanter, SYNERGIES } = __m_src_core_banter_js;
 const { portraitSVG, expressionFor } = __m_src_ui_portrait_js;
 const { loadMeta, saveMeta, loadRunJson, saveRunJson, clearRun } = __m_src_ui_store_js;
 const { sfx, setSound } = __m_src_ui_audio_js;
@@ -3037,10 +3169,38 @@ SCREENS.map = () => {
           <div class="bar xp" title="경험치"><i style="width:${pct(u.xp, xpToNext(u.level))}"></i></div>
         </div>
       </button>`).join('')}
+      ${synergyBox(r)}
+      ${banterBox(r)}
       <p class="small muted" style="margin:0">동료를 누르면 능력치·스킬을 보고 회복 아이템을 쓸 수 있어요.</p>
     </aside>
   </div>`;
 };
+
+function synergyBox(run) {
+  const syn = activeSynergies(run.party);
+  if (!syn.length) return '';
+  return `<div class="panel synergy-box"><div class="eyebrow">💞 인연 효과</div>${syn.map((x) => `<div class="small"><b>${x.name}</b> <span class="muted">${x.desc}</span></div>`).join('')}</div>`;
+}
+
+function banterBox(run) {
+  const lines = pickBanter(run);
+  if (!lines || !lines.length) return '';
+  return `<div class="chat" aria-label="동료들의 수다">${lines.map(({ uid, line }) => {
+    const u = run.party.find((x) => x.uid === uid);
+    return `<div class="chat-line"><span class="chat-pic">${portraitSVG(u.species, 'happy')}</span><div class="chat-bubble"><b>${u.name}</b> ${line}</div></div>`;
+  }).join('')}</div>`;
+}
+
+function synergyHints(u) {
+  const party = S.run ? S.run.party : [];
+  const rel = SYNERGIES.filter((x) => x.members.includes(u.species));
+  if (!rel.length) return '';
+  return `<div class="small"><span class="eyebrow">인연</span> ${rel.map((x) => {
+    const other = x.members.find((m) => m !== u.species);
+    const on = x.members.every((m) => party.some((p) => p.species === m && !p.fainted));
+    return `<span class="tag${on ? ' on' : ''}" title="${x.desc}">${on ? '💞' : '🤍'} ${x.name} · ${SPECIES[other].name}</span>`;
+  }).join(' ')}</div>`;
+}
 
 function unitDetail(u) {
   const sp = SPECIES[u.species];
@@ -3057,6 +3217,7 @@ function unitDetail(u) {
     </div>
     <div class="stats"><div>HP<b>${u.maxHp}</b></div><div>공격<b>${u.atk}</b></div><div>방어<b>${u.def}</b></div><div>매력<b>${u.cha}</b></div><div>속도<b>${u.spd}</b></div></div>
     <div class="skill-list">${sp.skills.map((s) => skillLine(s, u)).join('')}</div>
+    ${synergyHints(u)}
     <p class="small muted" style="margin:0">${sp.lore}</p>
     ${usable.length ? `<div class="row">${usable.map((k) => `<button class="btn small" data-act="useOutside" data-id="${k}" data-uid="${u.uid}">${ITEMS[k].icon} ${ITEMS[k].name} 사용 (${run.items[k]})</button>`).join('')}</div>` : ''}
     <div class="row end"><button class="btn" data-act="closeModal">닫기</button></div>`;
@@ -3325,6 +3486,7 @@ async function play(events, disp) {
       case 'revive': floatText(e.uid, '부활!', 'heal'); sfx.heal(); addLog(`${nm}${josa(nm, '이', '가')} 다시 일어났다!`); render(); await wait(300); break;
       case 'summon': addLog(`${nm}${josa(nm, '이', '가')} 나타났다!`); render(); Object.assign(disp, snapshot()); markSeen(u.species); await wait(400); break;
       case 'escape': addLog('연막 속으로 도망쳤다!'); await wait(400); break;
+      case 'synergy': addLog(`💞 인연 효과 — <b>${e.name}</b>!`); await wait(350); break;
       case 'turn':
         if (e.side === 'enemy') { addLog('— 몬무스들의 차례 —'); await wait(250); }
         break;
@@ -3383,6 +3545,29 @@ async function checkBattleOver() {
   }
 }
 
+function bossIntro(battle) {
+  const boss = battle.enemies[0];
+  const sp = SPECIES[boss.species];
+  markSeen(boss.species);
+  S.screen = 'bossIntro';
+  S.ui = { boss, battle };
+  render();
+}
+
+SCREENS.bossIntro = () => {
+  const { boss } = S.ui;
+  const sp = SPECIES[boss.species];
+  return `<section class="panel stack ending boss-intro">
+    <div class="eyebrow">${sp.role}</div>
+    <div class="recruit-pic big">${portraitSVG(boss.species, 'angry')}</div>
+    <h1 style="font-size:34px">${sp.given} <span class="muted" style="font-size:18px">${sp.name} · Lv.${boss.level}</span></h1>
+    <p class="quote" style="max-width:48ch">“${sp.lines.intro}”</p>
+    <p class="small muted">${sp.lore}</p>
+    <p class="small">💡 보스는 HP가 절반이 되기 전까지 마음의 벽이 있어 호감도가 잘 오르지 않아요. 좋아하는 것: ${ITEMS[sp.gift].icon} ${ITEMS[sp.gift].name}</p>
+    <button class="btn primary" data-act="faceBoss">맞선다</button>
+  </section>`;
+};
+
 function startBattle(battle) {
   S.battle = battle;
   S.ui = { selected: null, log: [], busy: false };
@@ -3395,6 +3580,18 @@ function startBattle(battle) {
   const first = battle.enemies[0];
   setTimeout(() => speech(first.uid, SPECIES[first.species].lines.intro), 250);
   if (battle.events.length) { const disp = snapshot(); play(battle.events.filter((e) => e.type !== 'turn'), disp); battle.events = []; }
+  if (!S.meta.tutorial) {
+    S.meta.tutorial = true;
+    saveMeta(S.meta);
+    openModal(() => `<div class="eyebrow">첫 전투</div><h2>싸울까, 친구가 될까?</h2>
+      <ul class="tut">
+        <li>테두리가 빛나는 동료를 누르고 <b>스킬</b> → <b>대상</b>을 고르세요.</li>
+        <li>몬무스의 <span style="color:var(--leafhp)">❤ HP</span>가 0이 되면 도망치고, <span style="color:var(--heart)">💗 호감도</span>가 가득 차면 <b>친구</b>가 되어 동료로 합류해요.</li>
+        <li>💗 매혹 스킬, 등불지기의 <b>💬 말 걸기</b>, 좋아하는 <b>선물</b>로 호감도를 올려요. 때리면 호감도가 조금 떨어져요.</li>
+        <li>적 머리 위 말풍선은 <b>다음 행동</b>이에요. 다 고르면 <b>턴 종료</b>!</li>
+      </ul>
+      <div class="row end"><button class="btn primary" data-act="closeModal">알겠어요</button></div>`);
+  }
 }
 
 function concludeBattle() {
@@ -3692,7 +3889,9 @@ function go(nodeId) {
   run.visited.push(nodeId);
   sfx.click();
   switch (res.type) {
-    case 'battle': return startBattle(res.battle);
+    case 'battle':
+      if (res.battle.kind === 'boss') return bossIntro(res.battle);
+      return startBattle(res.battle);
     case 'shop': S.ui = { shop: res.shop }; S.screen = 'shop'; break;
     case 'rest': S.ui = {}; S.screen = 'rest'; break;
     case 'treasure': S.ui = { loot: res.loot }; S.screen = 'treasure'; sfx.coin(); break;
@@ -3745,6 +3944,7 @@ const ACTIONS = {
   },
   abandonYes() { clearRun(); S.meta.runs++; saveMeta(S.meta); closeModal(); S.screen = 'title'; render(); },
   closeModal() { closeModal(); },
+  faceBoss() { sfx.click(); startBattle(S.ui.battle); },
   relicInfo(el) { const r = RELICS[el.dataset.id]; toast(`${r.icon} ${r.name} — ${r.desc}`); },
   go(el) { go(el.dataset.id); },
   detail(el) { const u = S.run.party.find((x) => x.uid === Number(el.dataset.uid)); if (u) openModal(unitDetail(u)); },

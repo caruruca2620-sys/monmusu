@@ -155,6 +155,20 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 400; text-wrap: bala
 .mini .pic { width: 52px; height: 52px; border-radius: 10px; overflow: hidden; }
 .mini.fainted .pic { filter: grayscale(1) brightness(0.7); }
 
+/* ── 수다 / 인연 ─────────────────────── */
+.synergy-box { padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.synergy-box b { font-family: var(--font-display); font-weight: 400; color: var(--heart); }
+.chat { display: flex; flex-direction: column; gap: 6px; }
+.chat-line { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 8px; align-items: end; }
+.chat-pic { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: var(--bough-2); display: block; }
+.chat-pic svg { width: 100%; height: 100%; display: block; }
+.chat-bubble { background: var(--moon); color: #2a2233; border-radius: 12px 12px 12px 3px; padding: 6px 10px; font-size: 13px; line-height: 1.4; }
+.chat-bubble b { font-family: var(--font-display); font-weight: 400; color: var(--lantern-deep); margin-right: 2px; }
+.tag.on { border-color: var(--heart); color: var(--heart); }
+.recruit-pic.big { width: 190px; }
+.boss-intro { border-color: var(--danger); }
+.tut { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+
 /* ── 바 ──────────────────────────────── */
 .bar { position: relative; height: 9px; border-radius: 6px; background: rgba(0, 0, 0, 0.35); overflow: hidden; }
 .bar > i { position: absolute; inset: 0 auto 0 0; border-radius: 6px; transition: width 0.35s ease; }

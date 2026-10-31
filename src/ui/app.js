@@ -14,6 +14,7 @@ import {
 import { autoTurn, befriendTarget } from '../core/ai.js';
 import { pickEvent, eventById } from '../core/events.js';
 import { NODE_TYPES } from '../core/map.js';
+import { activeSynergies, pickBanter, SYNERGIES } from '../core/banter.js';
 import { portraitSVG, expressionFor } from './portrait.js';
 import { loadMeta, saveMeta, loadRunJson, saveRunJson, clearRun } from './store.js';
 import { sfx, setSound } from './audio.js';
@@ -213,10 +214,38 @@ SCREENS.map = () => {
           <div class="bar xp" title="경험치"><i style="width:${pct(u.xp, xpToNext(u.level))}"></i></div>
         </div>
       </button>`).join('')}
+      ${synergyBox(r)}
+      ${banterBox(r)}
       <p class="small muted" style="margin:0">동료를 누르면 능력치·스킬을 보고 회복 아이템을 쓸 수 있어요.</p>
     </aside>
   </div>`;
 };
+
+function synergyBox(run) {
+  const syn = activeSynergies(run.party);
+  if (!syn.length) return '';
+  return `<div class="panel synergy-box"><div class="eyebrow">💞 인연 효과</div>${syn.map((x) => `<div class="small"><b>${x.name}</b> <span class="muted">${x.desc}</span></div>`).join('')}</div>`;
+}
+
+function banterBox(run) {
+  const lines = pickBanter(run);
+  if (!lines || !lines.length) return '';
+  return `<div class="chat" aria-label="동료들의 수다">${lines.map(({ uid, line }) => {
+    const u = run.party.find((x) => x.uid === uid);
+    return `<div class="chat-line"><span class="chat-pic">${portraitSVG(u.species, 'happy')}</span><div class="chat-bubble"><b>${u.name}</b> ${line}</div></div>`;
+  }).join('')}</div>`;
+}
+
+function synergyHints(u) {
+  const party = S.run ? S.run.party : [];
+  const rel = SYNERGIES.filter((x) => x.members.includes(u.species));
+  if (!rel.length) return '';
+  return `<div class="small"><span class="eyebrow">인연</span> ${rel.map((x) => {
+    const other = x.members.find((m) => m !== u.species);
+    const on = x.members.every((m) => party.some((p) => p.species === m && !p.fainted));
+    return `<span class="tag${on ? ' on' : ''}" title="${x.desc}">${on ? '💞' : '🤍'} ${x.name} · ${SPECIES[other].name}</span>`;
+  }).join(' ')}</div>`;
+}
 
 function unitDetail(u) {
   const sp = SPECIES[u.species];
@@ -233,6 +262,7 @@ function unitDetail(u) {
     </div>
     <div class="stats"><div>HP<b>${u.maxHp}</b></div><div>공격<b>${u.atk}</b></div><div>방어<b>${u.def}</b></div><div>매력<b>${u.cha}</b></div><div>속도<b>${u.spd}</b></div></div>
     <div class="skill-list">${sp.skills.map((s) => skillLine(s, u)).join('')}</div>
+    ${synergyHints(u)}
     <p class="small muted" style="margin:0">${sp.lore}</p>
     ${usable.length ? `<div class="row">${usable.map((k) => `<button class="btn small" data-act="useOutside" data-id="${k}" data-uid="${u.uid}">${ITEMS[k].icon} ${ITEMS[k].name} 사용 (${run.items[k]})</button>`).join('')}</div>` : ''}
     <div class="row end"><button class="btn" data-act="closeModal">닫기</button></div>`;
@@ -501,6 +531,7 @@ async function play(events, disp) {
       case 'revive': floatText(e.uid, '부활!', 'heal'); sfx.heal(); addLog(`${nm}${josa(nm, '이', '가')} 다시 일어났다!`); render(); await wait(300); break;
       case 'summon': addLog(`${nm}${josa(nm, '이', '가')} 나타났다!`); render(); Object.assign(disp, snapshot()); markSeen(u.species); await wait(400); break;
       case 'escape': addLog('연막 속으로 도망쳤다!'); await wait(400); break;
+      case 'synergy': addLog(`💞 인연 효과 — <b>${e.name}</b>!`); await wait(350); break;
       case 'turn':
         if (e.side === 'enemy') { addLog('— 몬무스들의 차례 —'); await wait(250); }
         break;
@@ -559,6 +590,29 @@ async function checkBattleOver() {
   }
 }
 
+function bossIntro(battle) {
+  const boss = battle.enemies[0];
+  const sp = SPECIES[boss.species];
+  markSeen(boss.species);
+  S.screen = 'bossIntro';
+  S.ui = { boss, battle };
+  render();
+}
+
+SCREENS.bossIntro = () => {
+  const { boss } = S.ui;
+  const sp = SPECIES[boss.species];
+  return `<section class="panel stack ending boss-intro">
+    <div class="eyebrow">${sp.role}</div>
+    <div class="recruit-pic big">${portraitSVG(boss.species, 'angry')}</div>
+    <h1 style="font-size:34px">${sp.given} <span class="muted" style="font-size:18px">${sp.name} · Lv.${boss.level}</span></h1>
+    <p class="quote" style="max-width:48ch">“${sp.lines.intro}”</p>
+    <p class="small muted">${sp.lore}</p>
+    <p class="small">💡 보스는 HP가 절반이 되기 전까지 마음의 벽이 있어 호감도가 잘 오르지 않아요. 좋아하는 것: ${ITEMS[sp.gift].icon} ${ITEMS[sp.gift].name}</p>
+    <button class="btn primary" data-act="faceBoss">맞선다</button>
+  </section>`;
+};
+
 function startBattle(battle) {
   S.battle = battle;
   S.ui = { selected: null, log: [], busy: false };
@@ -571,6 +625,18 @@ function startBattle(battle) {
   const first = battle.enemies[0];
   setTimeout(() => speech(first.uid, SPECIES[first.species].lines.intro), 250);
   if (battle.events.length) { const disp = snapshot(); play(battle.events.filter((e) => e.type !== 'turn'), disp); battle.events = []; }
+  if (!S.meta.tutorial) {
+    S.meta.tutorial = true;
+    saveMeta(S.meta);
+    openModal(() => `<div class="eyebrow">첫 전투</div><h2>싸울까, 친구가 될까?</h2>
+      <ul class="tut">
+        <li>테두리가 빛나는 동료를 누르고 <b>스킬</b> → <b>대상</b>을 고르세요.</li>
+        <li>몬무스의 <span style="color:var(--leafhp)">❤ HP</span>가 0이 되면 도망치고, <span style="color:var(--heart)">💗 호감도</span>가 가득 차면 <b>친구</b>가 되어 동료로 합류해요.</li>
+        <li>💗 매혹 스킬, 등불지기의 <b>💬 말 걸기</b>, 좋아하는 <b>선물</b>로 호감도를 올려요. 때리면 호감도가 조금 떨어져요.</li>
+        <li>적 머리 위 말풍선은 <b>다음 행동</b>이에요. 다 고르면 <b>턴 종료</b>!</li>
+      </ul>
+      <div class="row end"><button class="btn primary" data-act="closeModal">알겠어요</button></div>`);
+  }
 }
 
 function concludeBattle() {
@@ -868,7 +934,9 @@ function go(nodeId) {
   run.visited.push(nodeId);
   sfx.click();
   switch (res.type) {
-    case 'battle': return startBattle(res.battle);
+    case 'battle':
+      if (res.battle.kind === 'boss') return bossIntro(res.battle);
+      return startBattle(res.battle);
     case 'shop': S.ui = { shop: res.shop }; S.screen = 'shop'; break;
     case 'rest': S.ui = {}; S.screen = 'rest'; break;
     case 'treasure': S.ui = { loot: res.loot }; S.screen = 'treasure'; sfx.coin(); break;
@@ -921,6 +989,7 @@ const ACTIONS = {
   },
   abandonYes() { clearRun(); S.meta.runs++; saveMeta(S.meta); closeModal(); S.screen = 'title'; render(); },
   closeModal() { closeModal(); },
+  faceBoss() { sfx.click(); startBattle(S.ui.battle); },
   relicInfo(el) { const r = RELICS[el.dataset.id]; toast(`${r.icon} ${r.name} — ${r.desc}`); },
   go(el) { go(el.dataset.id); },
   detail(el) { const u = S.run.party.find((x) => x.uid === Number(el.dataset.uid)); if (u) openModal(unitDetail(u)); },

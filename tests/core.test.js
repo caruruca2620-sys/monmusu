@@ -247,3 +247,27 @@ test('전투 중 적 수는 최대 4', () => {
   }
   assert.ok(findUnit(b, b.enemies[0].uid));
 });
+
+test('인연 효과: 짝이 모두 있으면 전투 시작 효과가 걸린다', async () => {
+  const { activeSynergies, SYNERGIES, pickBanter } = await import('../src/core/banter.js');
+  const { makeRecruit } = await import('../src/core/run.js');
+  for (const syn of SYNERGIES) for (const m of syn.members) assert.ok(SPECIES[m], `${syn.id}: ${m}`);
+  const run = newRun(11, 'slime');
+  assert.equal(activeSynergies(run.party).length, 0);
+  run.party.push(makeRecruit(run, 'mandrake', 4));
+  assert.deepEqual(activeSynergies(run.party).map((s) => s.id), ['water_plant']);
+  const b = beginBattle(run, 'normal');
+  assert.ok(run.party.every((u) => u.st.regen), '재생이 걸려야 한다');
+  assert.ok(b.events.some((e) => e.type === 'synergy'));
+  // 기절한 동료는 인연에 포함되지 않는다
+  run.party[1].fainted = true;
+  assert.equal(activeSynergies(run.party).length, 0);
+  // 수다는 언제나 파티원의 말이다
+  run.party[1].fainted = false;
+  for (let f = 0; f < 12; f++) {
+    run.floor = f;
+    const lines = pickBanter(run);
+    assert.ok(lines.length >= 1);
+    for (const l of lines) assert.ok(run.party.some((u) => u.uid === l.uid) && l.line);
+  }
+});

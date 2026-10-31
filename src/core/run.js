@@ -4,6 +4,7 @@ import { SPECIES, ITEMS, RELICS, ACT_POOLS, BOSSES, GIFT_IDS } from './data.js';
 import { createUnit, refreshStats, gainXp, xpToNext, levelUp, resetUids } from './units.js';
 import { generateMap, startNodes, MAP_ROWS } from './map.js';
 import { createBattle, alive } from './battle.js';
+import { activeSynergies } from './banter.js';
 
 export const ACTS = 3;
 export const ACT_NAMES = ['속삭이는 숲', '불꽃 골짜기', '달이 진 성'];
@@ -123,7 +124,10 @@ export function enterNode(run, nodeId) {
 }
 
 // ── 전투 보상 ───────────────────────────────────────────────
-function goldMul(run) { return run.relics.includes('coin') ? 1.35 : 1; }
+function goldMul(run) {
+  const syn = activeSynergies(run.party).reduce((m, x) => m * (x.goldMul || 1), 1);
+  return (run.relics.includes('coin') ? 1.35 : 1) * syn;
+}
 
 export function addGold(run, amount) {
   const g = Math.round(amount);

@@ -161,7 +161,7 @@ export const SKILLS = Object.fromEntries([
 export const SPECIES = {
   slime: {
     name: '슬라임', given: '포요', element: 'water', role: '탱커',
-    base: { hp: 58, atk: 10, def: 9, cha: 10, spd: 6 }, grow: { hp: 8.5, atk: 1.7, def: 1.6, cha: 1.2, spd: 0.4 },
+    base: { hp: 62, atk: 10, def: 9, cha: 11, spd: 6 }, grow: { hp: 8.5, atk: 1.7, def: 1.6, cha: 1.2, spd: 0.4 },
     skills: ['slime_tackle', 'slime_hug', 'slime_wall', 'slime_absorb'],
     gift: 'candy', bond: 100,
     look: { skin: '#8fd3ff', skinAlpha: 0.85, hair: '#5ab8ff', hairStyle: 'drip', eye: '#1d5fa8', outfit: '#3e8fd9', features: ['slime'] },
