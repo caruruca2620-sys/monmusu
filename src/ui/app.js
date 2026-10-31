@@ -312,7 +312,7 @@ SCREENS.battle = () => {
       skills = unlockedSkills(sel).map((id, i) => {
         const s = SKILLS[id];
         const ok = usable.includes(id) && !ui.busy;
-        const cd = sel.cd[id] ? `⏳${sel.cd[id] - 1 || 1}` : s.cd ? `↻${s.cd}` : '';
+        const cd = sel.cd[id] ? `⏳${sel.cd[id]}` : s.cd ? `↻${s.cd}` : '';
         return `<button class="btn skill k-${s.kind}${ui.pendingSkill === id ? ' selected' : ''}" data-act="skill" data-id="${id}" ${ok ? '' : 'disabled'} title="${s.desc}">
           <span class="top"><span>${KIND_ICON[s.kind]} ${s.name}</span><span class="small muted">${i + 1} ${cd}</span></span>
           <span class="desc">${s.desc}${s.power ? ` (위력 ${s.power}${s.hits > 1 ? `×${s.hits}` : ''})` : ''}</span></button>`;
@@ -587,7 +587,8 @@ function concludeBattle() {
     bossFriend: b.befriended.some((e) => e.boss),
     befriended: b.befriended.map((e) => e.name),
     relicPicked: !res.relicChoices.length,
-    recruits: res.recruits.slice(),
+    // 최종 보스는 엔딩에서 함께하므로 영입 창을 띄우지 않는다
+    recruits: res.recruits.filter((r) => !(b.kind === 'boss' && run.act === 3 && SPECIES[r.species].boss)),
   };
   S.battle = null;
   S.screen = 'reward';
@@ -696,7 +697,7 @@ SCREENS.ending = () => {
   return `<section class="panel stack ending">
     <div class="eyebrow">${tr ? '진엔딩' : '엔딩'}</div>
     <h1 style="font-size:34px">${tr ? '달이 다시 떠오르다' : '되찾은 달빛'}</h1>
-    <div class="cast">${r.party.map((u) => portraitSVG(u.species, 'happy')).join('')}${tr ? portraitSVG('witch', 'love') : ''}</div>
+    <div class="cast">${r.party.filter((u) => u.species !== 'witch').map((u) => portraitSVG(u.species, 'happy')).join('')}${tr ? portraitSVG('witch', 'love') : ''}</div>
     ${tr ? `<p>마녀 녹스는 성의 창문을 활짝 열었다. 갇혀 있던 달빛이 숲으로 쏟아져 내린다.</p>
       <p class="quote">“…매주 목요일엔 차 마시러 와. 약속이야. 안 오면 달을 또 숨길 거야.”</p>
       <p>그날 이후, 달빛 숲에는 밤마다 작은 다과회가 열린다고 한다.</p>`
@@ -1077,8 +1078,5 @@ document.addEventListener('keydown', (e) => {
     if (btn && !btn.disabled) ACTIONS.skill(btn);
   }
 });
-
-// 뷰어가 페이지를 갱신해도 진행 중인 지도 상태를 지키기 위한 스냅숏 (claude.ai 아티팩트 전용)
-try { globalThis.claude?.hot?.snapshot?.(() => { saveRun(); return {}; }); } catch { /* 무시 */ }
 
 render();
