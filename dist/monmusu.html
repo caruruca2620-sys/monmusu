@@ -1,0 +1,3913 @@
+<title>달빛 숲의 몬무스</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap">
+<style>
+/* 달빛 숲의 몬무스 — 한 가지 세계(밤의 숲)에 맞춘 단일 다크 테마
+   Layout: 가운데 정렬된 게임 화면(최대 960px), 모바일에선 한 열로 쌓인다. */
+:root {
+  color-scheme: dark;
+  --night: #121821;      /* 바탕: 이끼빛이 도는 밤 */
+  --bough: #1b2430;      /* 패널 */
+  --bough-2: #243142;    /* 올라온 패널/버튼 */
+  --line: #34465a;       /* 테두리 */
+  --moon: #efe6d2;       /* 본문 글자: 달빛 종이 */
+  --moon-dim: #a9b1b8;   /* 보조 글자 */
+  --lantern: #ffb547;    /* 강조: 등불 */
+  --lantern-deep: #c97a12;
+  --heart: #ff6f9c;      /* 호감도 */
+  --leafhp: #5fd38d;     /* HP */
+  --danger: #ff6b5a;
+  --sleep: #8ea2ff;
+  --shadow: rgba(0, 0, 0, 0.45);
+
+  --font-display: 'Jua', 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-body: 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  --font-num: 'Jua', ui-rounded, 'Apple SD Gothic Neo', sans-serif;
+
+  --r: 14px;
+  --gap: 12px;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--night);
+  background-image:
+    radial-gradient(1200px 500px at 80% -10%, rgba(255, 243, 176, 0.08), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(95, 211, 141, 0.06), transparent 60%);
+  background-attachment: fixed;
+  color: var(--moon);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; }
+
+#app {
+  max-width: 960px;
+  margin: 0 auto;
+  min-height: 100%;
+  padding-block: 12px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+/* ── 공용 ─────────────────────────────── */
+.btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--bough-2);
+  border-radius: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: transform 0.08s, background 0.15s, border-color 0.15s;
+  text-align: center;
+}
+.btn:hover:not(:disabled) { border-color: var(--lantern); }
+.btn:active:not(:disabled) { transform: translateY(1px) scale(0.99); }
+.btn:focus-visible, .node:focus-visible, .unit:focus-visible, .choice:focus-visible { outline: 2px solid var(--lantern); outline-offset: 2px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.primary { background: var(--lantern); color: #2a1a05; border-color: var(--lantern); font-family: var(--font-display); font-size: 17px; }
+.btn.primary:hover:not(:disabled) { background: #ffc66e; }
+.btn.ghost { background: transparent; }
+.btn.small { padding: 6px 10px; font-size: 13px; border-radius: 10px; }
+.btn.heart { border-color: var(--heart); color: var(--heart); }
+.row { display: flex; gap: var(--gap); flex-wrap: wrap; align-items: center; }
+.row.end { justify-content: flex-end; }
+.row.center { justify-content: center; }
+.stack { display: flex; flex-direction: column; gap: var(--gap); }
+.panel { background: var(--bough); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; }
+.muted { color: var(--moon-dim); }
+.small { font-size: 13px; }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; padding: 1px 8px; border-radius: 999px;
+  background: var(--bough-2); border: 1px solid var(--line); white-space: nowrap;
+}
+.eyebrow { font-size: 12px; letter-spacing: 0.12em; color: var(--lantern); }
+
+/* ── 상단 바 ─────────────────────────── */
+.topbar {
+  display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
+  background: var(--bough); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 8px 12px;
+}
+.topbar .title { font-family: var(--font-display); font-size: 17px; color: var(--lantern); }
+.topbar .spacer { flex: 1; }
+.relics { display: flex; gap: 4px; flex-wrap: wrap; }
+.relic { font-size: 18px; cursor: help; position: relative; }
+
+/* ── 타이틀 ──────────────────────────── */
+.title-screen { align-items: center; text-align: center; padding-top: 4vh; }
+.title-art { position: relative; width: min(520px, 100%); aspect-ratio: 13 / 6; max-width: 100%; }
+.title-art .moon {
+  position: absolute; right: 8%; top: 0; width: 22%; aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, #fffbe6, #f3e2a6 60%, #d9c27a);
+  box-shadow: 0 0 60px rgba(255, 240, 180, 0.35);
+}
+.title-art .cast { position: absolute; inset: auto 0 0 0; display: flex; justify-content: center; align-items: flex-end; }
+.title-art .cast svg { width: 24%; margin: 0 -3%; filter: drop-shadow(0 6px 10px var(--shadow)); }
+.title-art .cast svg:nth-child(2) { width: 30%; z-index: 1; }
+.logo { font-family: var(--font-display); font-size: clamp(34px, 8vw, 58px); line-height: 1.1; color: var(--moon); text-shadow: 0 3px 0 var(--lantern-deep), 0 0 30px rgba(255, 181, 71, 0.35); }
+.logo small { display: block; font-size: 0.36em; color: var(--lantern); text-shadow: none; letter-spacing: 0.3em; margin-top: 6px; }
+.title-menu { display: grid; gap: 10px; width: min(320px, 100%); }
+.title-stats { font-size: 13px; color: var(--moon-dim); }
+
+/* ── 동료 선택 ───────────────────────── */
+.starters { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--gap); }
+.starter { cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 8px; }
+.starter:hover { border-color: var(--lantern); }
+.starter .pic { width: 120px; margin: 0 auto; }
+.skill-list { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.skill-list b { font-weight: 400; color: var(--lantern); font-family: var(--font-display); }
+
+/* ── 지도 ────────────────────────────── */
+.map-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: var(--gap); align-items: start; }
+@media (max-width: 760px) { .map-wrap { grid-template-columns: minmax(0, 1fr); } }
+.map { position: relative; padding: 16px 8px; overflow: hidden; }
+.map h2 { font-size: 22px; }
+.map-board { position: relative; margin: 10px auto 0; width: 100%; max-width: 440px; }
+.map-board svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.node {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 46px; height: 46px; border-radius: 50%;
+  border: 2px solid var(--line); background: var(--bough-2);
+  display: grid; place-items: center; font-size: 21px; cursor: default; padding: 0;
+}
+.node.boss { width: 66px; height: 66px; font-size: 30px; border-color: var(--danger); }
+.node.visited { opacity: 0.45; filter: grayscale(0.6); }
+.node.current { border-color: var(--moon); box-shadow: 0 0 0 4px rgba(239, 230, 210, 0.2); opacity: 1; filter: none; }
+.node.open { cursor: pointer; border-color: var(--lantern); animation: pulse 1.6s infinite; }
+.node.open:hover { background: var(--lantern-deep); }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 181, 71, 0.5); } 50% { box-shadow: 0 0 0 8px rgba(255, 181, 71, 0); } }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--moon-dim); justify-content: center; margin-top: 8px; }
+
+.party-side { display: flex; flex-direction: column; gap: 8px; }
+.mini {
+  display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; align-items: center;
+  padding: 8px; border-radius: 12px; background: var(--bough); border: 1px solid var(--line); cursor: pointer; text-align: left;
+}
+.mini:hover { border-color: var(--lantern); }
+.mini .pic { width: 52px; height: 52px; border-radius: 10px; overflow: hidden; }
+.mini.fainted .pic { filter: grayscale(1) brightness(0.7); }
+
+/* ── 바 ──────────────────────────────── */
+.bar { position: relative; height: 9px; border-radius: 6px; background: rgba(0, 0, 0, 0.35); overflow: hidden; }
+.bar > i { position: absolute; inset: 0 auto 0 0; border-radius: 6px; transition: width 0.35s ease; }
+.bar.hp > i { background: linear-gradient(90deg, #3fb873, var(--leafhp)); }
+.bar.hp.low > i { background: linear-gradient(90deg, #d9483b, var(--danger)); }
+.bar.bond > i { background: linear-gradient(90deg, #e2507f, var(--heart)); }
+.bar.xp { height: 5px; }
+.bar.xp > i { background: var(--sleep); }
+.bar .shield { position: absolute; right: 0; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, rgba(160, 200, 255, 0.8) 0 3px, rgba(160, 200, 255, 0.4) 3px 6px); border-radius: 6px; }
+.barline { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.barline .bar { flex: 1; }
+.barline .lbl { width: 14px; text-align: center; }
+.barline .val { min-width: 54px; text-align: right; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+
+/* ── 전투 ────────────────────────────── */
+.battle { display: flex; flex-direction: column; gap: 10px; }
+.side { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 210px)); justify-content: center; gap: 10px; }
+.unit {
+  position: relative; background: var(--bough); border: 1.5px solid var(--line); border-radius: var(--r);
+  padding: 8px; display: flex; flex-direction: column; gap: 5px; text-align: left; transition: transform 0.15s, opacity 0.4s, border-color 0.15s;
+}
+.unit .pic { position: relative; width: 100%; max-width: 132px; aspect-ratio: 1; margin: 0 auto; border-radius: 12px; }
+.unit .pic svg { width: 100%; height: 100%; display: block; }
+.unit .name { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.unit .name b { font-family: var(--font-display); font-weight: 400; font-size: 16px; }
+.unit .sts { display: flex; flex-wrap: wrap; gap: 3px; min-height: 20px; }
+.unit .st { font-size: 11px; padding: 0 5px; border-radius: 8px; background: rgba(0, 0, 0, 0.3); white-space: nowrap; }
+.unit .st.bad { color: #ffb3a8; }
+.unit.ally.ready { border-color: var(--lantern); }
+.unit.ally.selected { box-shadow: 0 0 0 3px var(--lantern); }
+.unit.acted { opacity: 0.62; }
+.unit.targetable { cursor: pointer; border-color: var(--heart); animation: pulse-t 1.2s infinite; }
+.unit.targetable.foe-t { border-color: var(--danger); animation-name: pulse-d; }
+@keyframes pulse-t { 50% { box-shadow: 0 0 0 5px rgba(255, 111, 156, 0.25); } }
+@keyframes pulse-d { 50% { box-shadow: 0 0 0 5px rgba(255, 107, 90, 0.28); } }
+.unit.gone { opacity: 0.25; filter: grayscale(0.7); }
+.unit.gone.friend { opacity: 0.85; filter: none; border-color: var(--heart); }
+.unit.fainted .pic { filter: grayscale(1) brightness(0.6); }
+.unit.shake { animation: shake 0.35s; }
+@keyframes shake { 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+.unit.lunge.enemy { animation: lungeDown 0.3s; }
+.unit.lunge.ally { animation: lungeUp 0.3s; }
+@keyframes lungeDown { 50% { transform: translateY(10px) scale(1.03); } }
+@keyframes lungeUp { 50% { transform: translateY(-10px) scale(1.03); } }
+.unit .badge { position: absolute; top: 6px; left: 6px; font-size: 12px; z-index: 2; }
+.intent {
+  position: absolute; top: -10px; right: 8px; z-index: 3;
+  background: var(--night); border: 1px solid var(--line); border-radius: 10px; padding: 1px 8px; font-size: 12px;
+  max-width: calc(100% - 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.intent.atk { border-color: var(--danger); }
+.intent.shy { border-color: var(--heart); color: var(--heart); }
+.float {
+  position: absolute; left: 50%; top: 35%; transform: translate(-50%, 0); pointer-events: none; z-index: 5;
+  font-family: var(--font-num); font-size: 24px; text-shadow: 0 2px 0 #000, 0 0 6px #000;
+  animation: floatUp 1s ease-out forwards; white-space: nowrap;
+}
+.float.dmg { color: #fff; }
+.float.crit { color: var(--lantern); font-size: 30px; }
+.float.heal { color: var(--leafhp); }
+.float.bond { color: var(--heart); }
+.float.miss { color: var(--moon-dim); font-size: 18px; }
+.float.block { color: #a0c8ff; font-size: 18px; }
+@keyframes floatUp { 0% { opacity: 0; transform: translate(-50%, 10px) scale(0.8); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.1); } 100% { opacity: 0; transform: translate(-50%, -46px) scale(1); } }
+.speech {
+  position: absolute; left: 6px; right: 6px; top: 40%; z-index: 6; pointer-events: none;
+  background: var(--moon); color: #2a2233; border-radius: 12px; padding: 6px 9px; font-size: 13px; line-height: 1.4;
+  box-shadow: 0 6px 18px var(--shadow); animation: pop 2.6s forwards;
+}
+@keyframes pop { 0% { opacity: 0; transform: scale(0.9); } 8% { opacity: 1; transform: scale(1); } 85% { opacity: 1; } 100% { opacity: 0; } }
+
+.vs { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--moon-dim); }
+.vs::before, .vs::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.log {
+  background: rgba(0, 0, 0, 0.25); border-radius: 10px; padding: 6px 10px; font-size: 13px; min-height: 2.6em;
+  max-height: 5.4em; overflow-y: auto; color: var(--moon-dim);
+}
+.log p { margin: 0; }
+.log p:last-child { color: var(--moon); }
+
+.command { display: flex; flex-direction: column; gap: 10px; }
+.command .who { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 16px; }
+.skills { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.skill { text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; }
+.skill .top { display: flex; justify-content: space-between; gap: 6px; font-family: var(--font-display); font-size: 15px; }
+.skill .desc { font-size: 12px; color: var(--moon-dim); line-height: 1.35; }
+.skill.k-charm { border-color: rgba(255, 111, 156, 0.6); }
+.skill.k-heal { border-color: rgba(95, 211, 141, 0.6); }
+.skill.k-attack { border-color: rgba(255, 107, 90, 0.5); }
+.skill.selected { background: var(--lantern-deep); border-color: var(--lantern); }
+.keeper { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.keeper .lbl { font-size: 12px; color: var(--moon-dim); }
+.bag { display: flex; flex-wrap: wrap; gap: 6px; }
+.item-btn { display: inline-flex; align-items: center; gap: 4px; }
+.item-btn .n { font-family: var(--font-num); font-size: 12px; color: var(--moon-dim); }
+.hint { font-size: 13px; color: var(--lantern); min-height: 1.4em; }
+
+/* ── 이벤트/보상 ─────────────────────── */
+.scene { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 600px) { .scene { grid-template-columns: minmax(0, 1fr); } .scene .art { justify-self: center; } }
+.scene .art { font-size: 92px; line-height: 1; text-align: center; width: 160px; height: 160px; display: grid; place-items: center; background: radial-gradient(circle, rgba(255, 181, 71, 0.18), transparent 70%); border-radius: 50%; }
+.scene .art svg { width: 150px; }
+.scene h2 { font-size: 26px; margin-bottom: 8px; }
+.scene p { margin: 0 0 10px; max-width: 60ch; }
+.choices { display: flex; flex-direction: column; gap: 8px; }
+.choice { text-align: left; }
+.result { border-left: 3px solid var(--lantern); padding: 4px 0 4px 12px; }
+
+.reward-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.relic-card { text-align: left; display: flex; flex-direction: column; gap: 4px; }
+.relic-card .ic { font-size: 30px; }
+.relic-card b { font-family: var(--font-display); font-weight: 400; font-size: 16px; }
+
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.good { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.good .head { display: flex; gap: 8px; align-items: center; font-family: var(--font-display); font-size: 16px; }
+.good .ic { font-size: 26px; }
+.good .price { color: var(--lantern); font-family: var(--font-num); }
+.good.sold { opacity: 0.4; }
+
+/* ── 도감 ────────────────────────────── */
+.codex { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.codex .entry { display: flex; flex-direction: column; gap: 4px; text-align: center; }
+.codex .entry .pic { width: 110px; margin: 0 auto; }
+.codex .entry.unknown .pic { filter: brightness(0) opacity(0.35); }
+.codex .entry.seen .pic { filter: grayscale(1) opacity(0.7); }
+.codex .entry b { font-family: var(--font-display); font-weight: 400; }
+
+/* ── 모달 ────────────────────────────── */
+.modal-back {
+  position: fixed; inset: 0; z-index: 50; background: rgba(5, 8, 12, 0.72);
+  display: grid; place-items: center;
+  padding-block: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  animation: fade 0.2s;
+}
+@keyframes fade { from { opacity: 0; } }
+.modal { width: min(560px, 100%); max-height: 100%; overflow-y: auto; background: var(--bough); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 60px var(--shadow); }
+.modal h2 { font-size: 22px; }
+.detail-head { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 14px; align-items: center; }
+.stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; text-align: center; font-size: 12px; }
+.stats div { background: var(--bough-2); border-radius: 8px; padding: 4px 2px; }
+.stats b { display: block; font-family: var(--font-num); font-weight: 400; font-size: 16px; color: var(--moon); }
+.recruit-pic { width: 150px; margin: 0 auto; animation: bob 2.4s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-6px); } }
+.quote { background: var(--moon); color: #2a2233; border-radius: 14px; padding: 10px 14px; position: relative; }
+
+.ending { text-align: center; align-items: center; }
+.ending p { max-width: 56ch; margin: 0 auto; }
+.ending .cast { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; }
+.ending .cast svg { width: 90px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60;
+  background: var(--moon); color: #2a2233; padding: 8px 16px; border-radius: 999px; font-size: 14px; box-shadow: 0 8px 24px var(--shadow);
+  animation: pop 2.4s forwards; max-width: calc(100% - 32px);
+}
+
+.help p, .help li { max-width: 65ch; }
+.help h3 { color: var(--lantern); font-size: 18px; margin-top: 6px; }
+
+@media (max-width: 520px) {
+  body { font-size: 14px; }
+  .side { grid-template-columns: repeat(auto-fit, minmax(140px, 176px)); gap: 8px; }
+  .unit { padding: 6px; }
+  .unit .pic { max-width: 92px; }
+  .unit .name b { font-size: 14px; }
+  .skills { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .skill .desc { display: none; }
+  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+</style>
+<main id="app"></main>
+<script>
+(() => {
+'use strict';
+// ── src/core/data.js ──
+const __m_src_core_data_js = (() => {
+// ─────────────────────────────────────────────────────────────
+//  달빛 숲의 몬무스 — 게임 데이터
+//  모든 캐릭터, 스킬, 아이템은 이 게임을 위해 새로 만든 오리지널입니다.
+// ─────────────────────────────────────────────────────────────
+
+const ELEMENTS = {
+  fire: { name: '불', icon: '🔥', color: '#ff7a59' },
+  water: { name: '물', icon: '💧', color: '#4fa8ff' },
+  leaf: { name: '숲', icon: '🍃', color: '#5cc36a' },
+  light: { name: '빛', icon: '✨', color: '#f5c542' },
+  dark: { name: '어둠', icon: '🌙', color: '#9b7bff' },
+  none: { name: '무', icon: '⚪', color: '#b8b2a7' },
+};
+
+// 공격 속성 → 방어 속성 배율
+function elementMultiplier(atk, def) {
+  if (atk === 'none' || def === 'none') return 1;
+  const beats = { fire: 'leaf', leaf: 'water', water: 'fire' };
+  if (beats[atk] === def) return 1.5;
+  if (beats[def] === atk) return 0.75;
+  if ((atk === 'light' && def === 'dark') || (atk === 'dark' && def === 'light')) return 1.5;
+  return 1;
+}
+
+// ── 상태 이상 ────────────────────────────────────────────────
+// tick: 'start' = 자기 턴 시작에 감소 (상대 턴을 막아주는 방어형)
+//       'end'   = 자기 턴 끝에 감소
+const STATUSES = {
+  poison: { name: '독', icon: '☠️', tick: 'end', bad: true, desc: '턴 시작마다 중첩만큼 피해. 중첩이 1씩 줄어든다.' },
+  burn: { name: '화상', icon: '🔥', tick: 'end', bad: true, desc: '턴 시작마다 최대 HP의 7% 피해.' },
+  sleep: { name: '수면', icon: '💤', tick: 'end', bad: true, desc: '행동할 수 없다. 피해를 받으면 깨어난다.' },
+  atkDown: { name: '공격↓', icon: '🔻', tick: 'end', bad: true, desc: '주는 피해 30% 감소.' },
+  defDown: { name: '방어↓', icon: '💔', tick: 'end', bad: true, desc: '받는 피해 30% 증가.' },
+  atkUp: { name: '공격↑', icon: '💪', tick: 'end', bad: false, desc: '주는 피해 35% 증가.' },
+  regen: { name: '재생', icon: '🌱', tick: 'end', bad: false, desc: '턴 시작마다 최대 HP의 8% 회복.' },
+  defUp: { name: '방어↑', icon: '🛡️', tick: 'start', bad: false, desc: '받는 피해 35% 감소.' },
+  taunt: { name: '도발', icon: '🎯', tick: 'start', bad: false, desc: '적이 이 대상을 우선 공격한다.' },
+  dodge: { name: '회피', icon: '💨', tick: 'start', bad: false, desc: '공격을 50% 확률로 피한다.' },
+  shield: { name: '보호막', icon: '🔰', tick: 'clear', bad: false, desc: '피해를 대신 흡수한다. 자기 턴 시작에 사라진다.' },
+};
+
+// ── 스킬 ────────────────────────────────────────────────────
+// kind: attack | charm | heal | buff | debuff | summon | wait
+// target: enemy | allEnemies | ally | allAllies | self | fallenAlly
+const S = (id, o) => ({ id, hits: 1, cd: 0, power: 0, effects: [], ...o });
+
+const SKILLS = Object.fromEntries([
+  // 공용
+  S('struggle', { name: '발버둥', kind: 'attack', target: 'enemy', power: 6, desc: '필사적으로 휘두른다.' }),
+  S('hesitate', { name: '망설임', kind: 'wait', target: 'self', desc: '얼굴을 붉히며 머뭇거린다…' }),
+
+  // 슬라임
+  S('slime_tackle', { name: '말랑 박치기', kind: 'attack', target: 'enemy', power: 13, desc: '통통 튀어 부딪친다.' }),
+  S('slime_wall', { name: '젤리 방벽', kind: 'buff', target: 'self', cd: 2, effects: [{ status: 'shield', amount: 1.0 }, { status: 'taunt', turns: 1 }], desc: '공격력 비례 보호막을 두르고 적을 도발한다.' }),
+  S('slime_hug', { name: '끈적 포옹', kind: 'charm', target: 'enemy', power: 18, effects: [{ status: 'atkDown', turns: 1, chance: 0.5 }], desc: '말랑하게 꼭 안아준다. 50%로 공격↓.' }),
+  S('slime_absorb', { name: '흡수', kind: 'attack', target: 'enemy', power: 13, cd: 2, lifesteal: 0.6, desc: '피해의 60%만큼 회복.' }),
+
+  // 하피
+  S('harpy_flurry', { name: '깃털 연타', kind: 'attack', target: 'enemy', power: 5, hits: 3, desc: '날카로운 깃털로 3회 공격.' }),
+  S('harpy_gust', { name: '돌풍', kind: 'attack', target: 'allEnemies', power: 8, cd: 2, desc: '적 전체에 바람을 일으킨다.' }),
+  S('harpy_song', { name: '하늘의 노래', kind: 'charm', target: 'allEnemies', power: 9, cd: 1, desc: '맑은 노래로 적 전체의 마음을 흔든다.' }),
+  S('harpy_soar', { name: '날아오르기', kind: 'buff', target: 'self', cd: 2, effects: [{ status: 'dodge', turns: 1 }, { status: 'atkUp', turns: 2 }], desc: '회피와 공격↑를 얻는다.' }),
+
+  // 여우
+  S('fox_fire', { name: '여우불', kind: 'attack', target: 'enemy', power: 13, effects: [{ status: 'burn', turns: 2, chance: 0.5 }], desc: '푸른 도깨비불. 50%로 화상.' }),
+  S('fox_bewitch', { name: '홀리기', kind: 'charm', target: 'enemy', power: 24, desc: '꼬리를 살랑이며 홀린다.' }),
+  S('fox_illusion', { name: '환영 분신', kind: 'buff', target: 'ally', cd: 2, effects: [{ status: 'dodge', turns: 1 }], desc: '아군 하나에게 환영을 씌워 회피를 부여.' }),
+  S('fox_ninetails', { name: '구미 화염', kind: 'attack', target: 'allEnemies', power: 13, cd: 3, effects: [{ status: 'burn', turns: 2, chance: 0.7 }], desc: '아홉 갈래 불꽃이 적 전체를 덮친다.' }),
+
+  // 맨드레이크
+  S('mandra_whip', { name: '뿌리 채찍', kind: 'attack', target: 'enemy', power: 12, desc: '뿌리로 찰싹.' }),
+  S('mandra_heal', { name: '새싹 치유', kind: 'heal', target: 'ally', power: 22, desc: '아군 하나를 회복.' }),
+  S('mandra_scream', { name: '비명', kind: 'debuff', target: 'allEnemies', cd: 3, effects: [{ status: 'sleep', turns: 1, chance: 0.45 }], desc: '귀를 찢는 비명! 45%로 적을 기절(수면).' }),
+  S('mandra_scent', { name: '꽃향기', kind: 'charm', target: 'enemy', power: 15, effects: [{ status: 'regen', turns: 2, on: 'randomAlly' }], desc: '달콤한 향기로 매혹. 무작위 아군 재생.' }),
+  S('mandra_photo', { name: '광합성', kind: 'buff', target: 'allAllies', cd: 3, effects: [{ status: 'regen', turns: 3 }], desc: '아군 전체에 재생 3턴.' }),
+
+  // 라미아
+  S('lamia_fang', { name: '독니', kind: 'attack', target: 'enemy', power: 8, effects: [{ status: 'poison', amount: 4 }], desc: '물어서 독 4 부여.' }),
+  S('lamia_coil', { name: '휘감기', kind: 'attack', target: 'enemy', power: 13, cd: 1, effects: [{ status: 'atkDown', turns: 1 }], desc: '꼬리로 조여 공격↓.' }),
+  S('lamia_gaze', { name: '뱀의 눈', kind: 'charm', target: 'enemy', power: 18, effects: [{ status: 'sleep', turns: 1, chance: 0.3 }], desc: '깊은 눈동자로 매혹. 30%로 수면.' }),
+  S('lamia_shed', { name: '탈피', kind: 'heal', target: 'self', power: 18, cd: 3, cleanse: true, desc: '나쁜 상태를 벗어던지고 회복.' }),
+
+  // 아라크네
+  S('arachne_bind', { name: '실 묶기', kind: 'attack', target: 'enemy', power: 7, effects: [{ status: 'sleep', turns: 1, chance: 0.35 }], desc: '실로 묶는다. 35%로 행동 불능.' }),
+  S('arachne_sting', { name: '독침', kind: 'attack', target: 'enemy', power: 10, effects: [{ status: 'poison', amount: 3 }], desc: '독 3 부여.' }),
+  S('arachne_cradle', { name: '실뜨기 놀이', kind: 'charm', target: 'enemy', power: 19, desc: '같이 실뜨기 하자!' }),
+  S('arachne_fort', { name: '거미집 요새', kind: 'buff', target: 'allAllies', cd: 3, effects: [{ status: 'defUp', turns: 1 }], desc: '아군 전체에 방어↑.' }),
+
+  // 듀라한
+  S('dulla_slash', { name: '대검 베기', kind: 'attack', target: 'enemy', power: 17, desc: '묵직한 일격.' }),
+  S('dulla_oath', { name: '기사의 맹세', kind: 'buff', target: 'self', cd: 2, effects: [{ status: 'taunt', turns: 1 }, { status: 'defUp', turns: 1 }], desc: '도발하고 방어↑.' }),
+  S('dulla_headthrow', { name: '머리 던지기', kind: 'attack', target: 'enemy', power: 30, cd: 3, desc: '……정말 던졌다. 강력한 일격.' }),
+  S('dulla_bow', { name: '정중한 인사', kind: 'charm', target: 'enemy', power: 15, desc: '머리를 벗어 공손히 인사한다.' }),
+
+  // 인어
+  S('mer_splash', { name: '물보라', kind: 'attack', target: 'allEnemies', power: 7, desc: '적 전체에 물을 끼얹는다.' }),
+  S('mer_lullaby', { name: '자장가', kind: 'debuff', target: 'enemy', cd: 2, effects: [{ status: 'sleep', turns: 1, chance: 0.8 }], desc: '80%로 적을 재운다.' }),
+  S('mer_healsong', { name: '치유의 노래', kind: 'heal', target: 'allAllies', power: 11, cd: 1, desc: '아군 전체를 회복.' }),
+  S('mer_pearl', { name: '진주 선물', kind: 'charm', target: 'enemy', power: 20, desc: '반짝이는 진주를 건넨다.' }),
+
+  // 살라만더
+  S('sala_claw', { name: '화염 발톱', kind: 'attack', target: 'enemy', power: 14, effects: [{ status: 'burn', turns: 2, chance: 0.35 }], desc: '35%로 화상.' }),
+  S('sala_breath', { name: '불꽃 숨결', kind: 'attack', target: 'allEnemies', power: 10, cd: 2, desc: '적 전체 화염 공격.' }),
+  S('sala_rage', { name: '열혈', kind: 'buff', target: 'self', cd: 3, effects: [{ status: 'atkUp', turns: 3 }], desc: '공격↑ 3턴.' }),
+  S('sala_cheer', { name: '뜨거운 응원', kind: 'charm', target: 'enemy', power: 13, effects: [{ status: 'atkUp', turns: 2, on: 'randomAlly' }], desc: '매혹하고 무작위 아군에게 공격↑.' }),
+
+  // 유령
+  S('ghost_touch', { name: '오싹한 손길', kind: 'attack', target: 'enemy', power: 9, effects: [{ status: 'defDown', turns: 2 }], desc: '방어↓ 부여.' }),
+  S('ghost_fade', { name: '사라지기', kind: 'buff', target: 'self', cd: 1, effects: [{ status: 'dodge', turns: 1 }], desc: '스르르… 회피.' }),
+  S('ghost_boo', { name: '깜짝이야!', kind: 'charm', target: 'enemy', power: 12, effects: [{ status: 'atkDown', turns: 1 }], desc: '놀래키며 장난. 공격↓.' }),
+  S('ghost_drain', { name: '영혼 흡수', kind: 'attack', target: 'enemy', power: 13, cd: 2, lifesteal: 0.5, element: 'dark', desc: '피해의 50% 회복.' }),
+
+  // 유니콘
+  S('uni_horn', { name: '성스러운 뿔', kind: 'attack', target: 'enemy', power: 12, desc: '빛나는 뿔로 찌른다.' }),
+  S('uni_veil', { name: '빛의 장막', kind: 'buff', target: 'allAllies', cd: 2, effects: [{ status: 'shield', amount: 0.8 }], desc: '아군 전체에 보호막.' }),
+  S('uni_heal', { name: '치유의 빛', kind: 'heal', target: 'ally', power: 24, cleanse: true, desc: '아군 하나 회복 및 정화.' }),
+  S('uni_smile', { name: '순수한 미소', kind: 'charm', target: 'enemy', power: 18, desc: '눈부신 미소.' }),
+  S('uni_revive', { name: '재생의 빛', kind: 'heal', target: 'fallenAlly', power: 0, cd: 5, revive: 0.4, desc: '쓰러진 아군을 40% HP로 부활.' }),
+
+  // 미믹
+  S('mimic_chomp', { name: '덥석!', kind: 'attack', target: 'enemy', power: 16, desc: '뚜껑으로 덥석.' }),
+  S('mimic_shiny', { name: '반짝반짝', kind: 'charm', target: 'enemy', power: 22, cd: 1, desc: '안에 든 보물을 살짝 보여준다.' }),
+  S('mimic_lid', { name: '뚜껑 닫기', kind: 'buff', target: 'self', cd: 2, effects: [{ status: 'shield', amount: 1.6 }], desc: '단단한 보호막.' }),
+  S('mimic_greed', { name: '탐욕의 이빨', kind: 'attack', target: 'enemy', power: 11, gold: 4, desc: '명중 시 골드 4 획득.' }),
+
+  // 골렘
+  S('golem_punch', { name: '바위 주먹', kind: 'attack', target: 'enemy', power: 16, desc: '쿵!' }),
+  S('golem_harden', { name: '단단해지기', kind: 'buff', target: 'self', cd: 2, effects: [{ status: 'defUp', turns: 1 }, { status: 'taunt', turns: 1 }], desc: '방어↑, 도발.' }),
+  S('golem_quake', { name: '지진', kind: 'attack', target: 'allEnemies', power: 11, cd: 2, desc: '적 전체 공격.' }),
+  S('golem_flower', { name: '꽃 건네기', kind: 'charm', target: 'enemy', power: 17, desc: '커다란 손으로 작은 꽃을 내민다.' }),
+
+  // 캣시
+  S('cat_scratch', { name: '할퀴기', kind: 'attack', target: 'enemy', power: 7, hits: 2, desc: '2회 공격.' }),
+  S('cat_steal', { name: '슬쩍하기', kind: 'attack', target: 'enemy', power: 8, gold: 6, desc: '명중 시 골드 6 획득.' }),
+  S('cat_purr', { name: '골골송', kind: 'charm', target: 'enemy', power: 20, desc: '그르릉… 골골…' }),
+  S('cat_nap', { name: '고양이 낮잠', kind: 'buff', target: 'self', cd: 3, effects: [{ status: 'regen', turns: 3 }, { status: 'dodge', turns: 1 }], desc: '재생과 회피.' }),
+
+  // 보스: 드라이어드
+  S('dryad_vine', { name: '덩굴 채찍', kind: 'attack', target: 'enemy', power: 15, desc: '거대한 덩굴이 휘몰아친다.' }),
+  S('dryad_bloom', { name: '만개', kind: 'heal', target: 'allAllies', power: 14, cd: 3, desc: '꽃이 피며 동료 전체 회복.' }),
+  S('dryad_summon', { name: '숲의 부름', kind: 'summon', target: 'self', cd: 4, summon: 'mandrake', desc: '맨드레이크를 불러낸다.' }),
+  S('dryad_spore', { name: '포자 폭풍', kind: 'attack', target: 'allEnemies', power: 10, cd: 2, effects: [{ status: 'poison', amount: 3 }], desc: '전체 공격 + 독.' }),
+
+  // 보스: 용 공주
+  S('dragon_claw', { name: '용의 발톱', kind: 'attack', target: 'enemy', power: 20, desc: '강철도 찢는 발톱.' }),
+  S('dragon_inferno', { name: '업화', kind: 'attack', target: 'allEnemies', power: 16, cd: 3, effects: [{ status: 'burn', turns: 2, chance: 0.6 }], desc: '모든 것을 태우는 불꽃.' }),
+  S('dragon_roar', { name: '포효', kind: 'debuff', target: 'allEnemies', cd: 3, effects: [{ status: 'atkDown', turns: 2 }, { status: 'defDown', turns: 2 }], desc: '전체 공격↓·방어↓.' }),
+  S('dragon_summon', { name: '권속 소환', kind: 'summon', target: 'self', cd: 4, summon: 'salamander', desc: '살라만더를 부른다.' }),
+
+  // 보스: 달의 마녀
+  S('witch_moonbeam', { name: '월광', kind: 'attack', target: 'enemy', power: 22, element: 'dark', desc: '차가운 달빛이 꿰뚫는다.' }),
+  S('witch_eclipse', { name: '월식', kind: 'attack', target: 'allEnemies', power: 15, cd: 3, effects: [{ status: 'sleep', turns: 1, chance: 0.3 }], desc: '세상이 어두워진다. 30%로 수면.' }),
+  S('witch_drain', { name: '흡혈 키스', kind: 'attack', target: 'enemy', power: 18, cd: 2, lifesteal: 0.8, desc: '피해의 80% 회복.' }),
+  S('witch_summon', { name: '망령 소환', kind: 'summon', target: 'self', cd: 3, summon: 'ghost', desc: '유령을 불러낸다.' }),
+  S('witch_curse', { name: '저주', kind: 'debuff', target: 'enemy', cd: 2, effects: [{ status: 'defDown', turns: 2 }, { status: 'poison', amount: 6 }], desc: '방어↓와 독 6.' }),
+].map((s) => [s.id, s]));
+
+// ── 종족 ────────────────────────────────────────────────────
+// base: 레벨 1 능력치, grow: 레벨당 증가량
+// look: 초상화 생성 파라미터
+const SPECIES = {
+  slime: {
+    name: '슬라임', given: '포요', element: 'water', role: '탱커',
+    base: { hp: 58, atk: 10, def: 9, cha: 10, spd: 6 }, grow: { hp: 8.5, atk: 1.7, def: 1.6, cha: 1.2, spd: 0.4 },
+    skills: ['slime_tackle', 'slime_hug', 'slime_wall', 'slime_absorb'],
+    gift: 'candy', bond: 100,
+    look: { skin: '#8fd3ff', skinAlpha: 0.85, hair: '#5ab8ff', hairStyle: 'drip', eye: '#1d5fa8', outfit: '#3e8fd9', features: ['slime'] },
+    lines: {
+      intro: '뽀용~? 너 맛있는 냄새 나!',
+      join: '헤헤, 이제 친구지? 같이 갈래!',
+      flee: '뽀요오옹… 흐물흐물…',
+      gift: '와아! 달콤한 별사탕! 녹아버릴 것 같아~',
+      shy: '왜, 왜 그렇게 쳐다봐…? 몸이 막 출렁거려…',
+    },
+    lore: '숲속 샘물에서 태어난 말랑한 소녀. 무엇이든 일단 먹어보고 판단한다.',
+  },
+  harpy: {
+    name: '하피', given: '피피', element: 'leaf', role: '연속 공격',
+    base: { hp: 44, atk: 11, def: 6, cha: 11, spd: 14 }, grow: { hp: 6, atk: 2, def: 0.9, cha: 1.3, spd: 1 },
+    skills: ['harpy_flurry', 'harpy_song', 'harpy_gust', 'harpy_soar'],
+    gift: 'honey', bond: 95,
+    look: { skin: '#ffe0c7', hair: '#7bc96f', hairStyle: 'messy', eye: '#2f7d32', outfit: '#f2b84b', features: ['wings', 'feather'] },
+    lines: {
+      intro: '삐삐! 여긴 내 하늘이야!',
+      join: '좋아, 너랑 같이 날아줄게!',
+      flee: '삐이이~ 다음엔 안 질 거야!',
+      gift: '꿀! 꿀이다! 너 진짜 좋은 녀석이구나!',
+      shy: '깃털이… 자꾸 부풀어…! 보지 마!',
+    },
+    lore: '노래를 좋아하는 숲의 하피. 반짝이는 것과 꿀을 보면 참지 못한다.',
+  },
+  kitsune: {
+    name: '여우', given: '코하쿠', element: 'fire', role: '마법·매혹',
+    base: { hp: 46, atk: 12, def: 7, cha: 14, spd: 10 }, grow: { hp: 6.5, atk: 2.1, def: 1, cha: 1.8, spd: 0.7 },
+    skills: ['fox_fire', 'fox_bewitch', 'fox_illusion', 'fox_ninetails'],
+    gift: 'tofu', bond: 110,
+    look: { skin: '#ffe6d1', hair: '#ff9a3c', hairStyle: 'long', eye: '#c2410c', outfit: '#e04848', features: ['foxEars', 'foxTails'] },
+    lines: {
+      intro: '후후, 길 잃은 인간인가? 재밌겠네.',
+      join: '흐응… 특별히 따라가 줄게. 고마워하라고?',
+      flee: '쳇, 오늘은 봐줄게!',
+      gift: '유, 유부…!? 이건 반칙이야… 꼬리가 멋대로…!',
+      shy: '꼬, 꼬리 흔드는 거 아니거든!',
+    },
+    lore: '도깨비불을 부리는 여우 소녀. 장난을 좋아하지만 의리는 깊다.',
+  },
+  mandrake: {
+    name: '맨드레이크', given: '도라', element: 'leaf', role: '치유',
+    base: { hp: 48, atk: 8, def: 8, cha: 11, spd: 7 }, grow: { hp: 7, atk: 1.3, def: 1.2, cha: 1.3, spd: 0.4 },
+    skills: ['mandra_heal', 'mandra_whip', 'mandra_scent', 'mandra_photo', 'mandra_scream'],
+    gift: 'flower', bond: 95,
+    look: { skin: '#f3e2c4', hair: '#8a5a3b', hairStyle: 'bob', eye: '#6b8e23', outfit: '#6fae4f', features: ['sprout'] },
+    lines: {
+      intro: '나, 나를 뽑으려는 거지!? 소리 지를 거야!',
+      join: '…너라면, 화분에 옮겨 심어줘도 괜찮아.',
+      flee: '꺄아아아악——!!',
+      gift: '꽃… 나한테? 친구들이랑 같은 냄새가 나…',
+      shy: '잎사귀가 빨개졌잖아… 네 탓이야.',
+    },
+    lore: '땅속에서 잠자다 깨어난 겁 많은 식물 소녀. 비명은 정말로 위험하다.',
+  },
+  lamia: {
+    name: '라미아', given: '세르펜', element: 'dark', role: '독',
+    base: { hp: 54, atk: 11, def: 8, cha: 12, spd: 9 }, grow: { hp: 7.5, atk: 1.9, def: 1.2, cha: 1.4, spd: 0.6 },
+    skills: ['lamia_fang', 'lamia_coil', 'lamia_gaze', 'lamia_shed'],
+    gift: 'fish', bond: 110,
+    look: { skin: '#f7dccb', hair: '#2f8f7a', hairStyle: 'long', eye: '#d4a017', outfit: '#3b6e5f', features: ['scales', 'slitEyes'] },
+    lines: {
+      intro: '어머, 따뜻한 손님이네. 조금만 감아봐도 될까?',
+      join: '추운 밤엔 네 곁이 좋겠어. 같이 가자.',
+      flee: '쉬익… 기억해 둘게.',
+      gift: '신선한 생선… 너, 날 잘 아는구나?',
+      shy: '그렇게 보면… 비늘이 곤두서잖아.',
+    },
+    lore: '느긋한 뱀 소녀. 추위를 많이 타서 따뜻한 것에 감기는 버릇이 있다.',
+  },
+  arachne: {
+    name: '아라크네', given: '아라', element: 'leaf', role: '방해',
+    base: { hp: 50, atk: 10, def: 9, cha: 11, spd: 8 }, grow: { hp: 7, atk: 1.7, def: 1.4, cha: 1.3, spd: 0.5 },
+    skills: ['arachne_sting', 'arachne_bind', 'arachne_cradle', 'arachne_fort'],
+    gift: 'yarn', bond: 105,
+    look: { skin: '#efe0f0', hair: '#4a3860', hairStyle: 'twin', eye: '#c03080', outfit: '#6a4c93', features: ['spiderEyes', 'spiderLegs'] },
+    lines: {
+      intro: '내 거미줄에 걸렸네? 나가고 싶으면 놀아줘.',
+      join: '좋아, 네 옷은 내가 짜 줄게. 평생.',
+      flee: '실이 엉켰잖아—!',
+      gift: '털실! 이 색… 너무 예뻐. 뭐 떠줄까?',
+      shy: '여덟 개 눈이 다 너만 보잖아… 곤란해.',
+    },
+    lore: '뜨개질이 취미인 거미 소녀. 그녀의 실은 강철보다 질기고 비단보다 부드럽다.',
+  },
+  dullahan: {
+    name: '듀라한', given: '리제', element: 'dark', role: '기사',
+    base: { hp: 60, atk: 13, def: 11, cha: 9, spd: 6 }, grow: { hp: 8.5, atk: 2.2, def: 1.7, cha: 1, spd: 0.3 },
+    skills: ['dulla_slash', 'dulla_oath', 'dulla_headthrow', 'dulla_bow'],
+    gift: 'tea', bond: 120,
+    look: { skin: '#f0e6e0', hair: '#c9c9d9', hairStyle: 'pony', eye: '#5b6ee1', outfit: '#3c3f58', features: ['floatingHead', 'armor'] },
+    lines: {
+      intro: '멈춰라! 이 길은 내가 지킨다!',
+      join: '기사의 이름으로 맹세하지. 그대의 검이 되겠다.',
+      flee: '크윽… 머리가 어디 갔지…?',
+      gift: '이, 이건 최고급 홍차…! 기사의 품위를 아는군.',
+      shy: '머, 머리가 뜨거워져서 떨어질 것 같아…!',
+    },
+    lore: '머리를 들고 다니는 고지식한 기사. 자주 머리를 두고 와서 곤란해한다.',
+  },
+  mermaid: {
+    name: '인어', given: '마리나', element: 'water', role: '치유·수면',
+    base: { hp: 46, atk: 9, def: 7, cha: 13, spd: 9 }, grow: { hp: 6.5, atk: 1.5, def: 1, cha: 1.6, spd: 0.6 },
+    skills: ['mer_healsong', 'mer_splash', 'mer_lullaby', 'mer_pearl'],
+    gift: 'shell', bond: 100,
+    look: { skin: '#e6f4ff', hair: '#ff8fb8', hairStyle: 'wavy', eye: '#2a9d8f', outfit: '#48cae4', features: ['finEars', 'pearl'] },
+    lines: {
+      intro: '♪ 호숫가의 노래를 들으러 왔니? ♪',
+      join: '네 여행의 노래를 내가 불러줄게.',
+      flee: '물속으로 퐁당~!',
+      gift: '예쁜 조개껍질! 바다 소리가 들려…',
+      shy: '♪ 두근두근… 아, 노래가 꼬였어…',
+    },
+    lore: '숲 깊은 곳 달빛 호수에 사는 인어. 그녀의 노래는 상처를 아물게 한다.',
+  },
+  salamander: {
+    name: '살라만더', given: '살라', element: 'fire', role: '딜러',
+    base: { hp: 52, atk: 13, def: 8, cha: 9, spd: 10 }, grow: { hp: 7, atk: 2.3, def: 1.2, cha: 1, spd: 0.7 },
+    skills: ['sala_claw', 'sala_breath', 'sala_rage', 'sala_cheer'],
+    gift: 'honey', bond: 100,
+    look: { skin: '#ffd8b8', hair: '#ff4d2e', hairStyle: 'messy', eye: '#ffb000', outfit: '#8a2b17', features: ['smallHorns', 'flameHair'] },
+    lines: {
+      intro: '하앗! 불타오르는 승부다!',
+      join: '좋아! 너랑이면 더 뜨거워질 수 있겠어!',
+      flee: '내 불꽃이 꺼졌어…!',
+      gift: '꿀!? 달달한 거 엄청 좋아해! 에헤헤!',
+      shy: '얼굴이 뜨거운 건 원래 그래! 진짜야!',
+    },
+    lore: '불꽃처럼 열정적인 도마뱀 소녀. 화가 나도 기뻐도 꼬리가 타오른다.',
+  },
+  ghost: {
+    name: '유령', given: '유유', element: 'dark', role: '회피·약화',
+    base: { hp: 42, atk: 11, def: 6, cha: 12, spd: 12 }, grow: { hp: 5.5, atk: 1.9, def: 0.9, cha: 1.5, spd: 0.8 },
+    skills: ['ghost_touch', 'ghost_boo', 'ghost_fade', 'ghost_drain'],
+    gift: 'candy', bond: 95,
+    look: { skin: '#eef3ff', skinAlpha: 0.9, hair: '#d8e2ff', hairStyle: 'long', eye: '#7b8cff', outfit: '#cdd6ff', features: ['ghost', 'wisp'] },
+    lines: {
+      intro: '우~ 라~ 메~ 시~ 야~! …안 무서워?',
+      join: '나 계속 혼자였거든. 같이 있어도 돼?',
+      flee: '스르르르… 사라질게…',
+      gift: '사탕! 나 먹을 수는 없지만… 기뻐!',
+      shy: '나 투명한데 왜 빨개지는 거야…!',
+    },
+    lore: '외로움을 많이 타는 유령. 놀래키는 게 인사인 줄 안다.',
+  },
+  unicorn: {
+    name: '유니콘', given: '루미', element: 'light', role: '수호',
+    base: { hp: 50, atk: 10, def: 9, cha: 13, spd: 9 }, grow: { hp: 7, atk: 1.6, def: 1.4, cha: 1.6, spd: 0.6 },
+    skills: ['uni_heal', 'uni_horn', 'uni_veil', 'uni_smile', 'uni_revive'],
+    gift: 'flower', bond: 115,
+    look: { skin: '#fff5f0', hair: '#f3f0ff', hairStyle: 'wavy', eye: '#b06ee8', outfit: '#ffffff', features: ['horn', 'horseEars'] },
+    lines: {
+      intro: '마음이 맑은 자만 지나갈 수 있어요.',
+      join: '당신의 마음, 투명하고 따뜻하네요. 함께할게요.',
+      flee: '부디… 그 마음을 잃지 마세요.',
+      gift: '들꽃… 이렇게 고운 꽃은 처음이에요.',
+      shy: '뿔이… 반짝거리는 건 기분 탓이에요.',
+    },
+    lore: '숲의 빛을 지키는 유니콘. 상처 입은 자를 그냥 지나치지 못한다.',
+  },
+  mimic: {
+    name: '미믹', given: '미미', element: 'none', role: '골드·폭딜',
+    base: { hp: 52, atk: 13, def: 10, cha: 12, spd: 5 }, grow: { hp: 7, atk: 2.1, def: 1.5, cha: 1.4, spd: 0.3 },
+    skills: ['mimic_chomp', 'mimic_greed', 'mimic_shiny', 'mimic_lid'],
+    gift: 'gem', bond: 105,
+    look: { skin: '#ffe2cc', hair: '#ffcc33', hairStyle: 'bob', eye: '#ff6b00', outfit: '#9c6b30', features: ['chest'] },
+    lines: {
+      intro: '보물상자인 줄 알았지? 안타깝게도… 나야!',
+      join: '내 안의 보물, 너한테만 보여줄게.',
+      flee: '뚜껑 꽉 닫고 도망!',
+      gift: '보석이다아아! 내 안에 넣어둘래!',
+      shy: '뚜, 뚜껑 열지 마! 지금 얼굴 이상하단 말야!',
+    },
+    lore: '보물상자에 사는 소녀. 반짝이는 것을 모으는 게 삶의 낙.',
+  },
+  golem: {
+    name: '골렘', given: '고로', element: 'none', role: '탱커',
+    base: { hp: 66, atk: 12, def: 12, cha: 8, spd: 3 }, grow: { hp: 9.5, atk: 1.9, def: 1.8, cha: 0.9, spd: 0.2 },
+    skills: ['golem_punch', 'golem_harden', 'golem_quake', 'golem_flower'],
+    gift: 'gem', bond: 115,
+    look: { skin: '#c9c1b3', hair: '#8d8576', hairStyle: 'short', eye: '#4dd0e1', outfit: '#6d6457', features: ['runes', 'stone'] },
+    lines: {
+      intro: '……침입자. 확인. ……작다.',
+      join: '……보호 대상, 갱신. 너.',
+      flee: '……기능, 일시 정지.',
+      gift: '……반짝임. 감지. ……기쁨, 이라는 것.',
+      shy: '……과열. 원인 불명. ……너?',
+    },
+    lore: '고대 유적을 지키던 돌 소녀. 말수는 적지만 꽃을 아주 좋아한다.',
+  },
+  catsith: {
+    name: '캣시', given: '나비', element: 'light', role: '도적',
+    base: { hp: 44, atk: 12, def: 7, cha: 12, spd: 15 }, grow: { hp: 6, atk: 2, def: 1, cha: 1.4, spd: 1 },
+    skills: ['cat_scratch', 'cat_steal', 'cat_purr', 'cat_nap'],
+    gift: 'fish', bond: 100,
+    look: { skin: '#fff0e0', hair: '#2b2b2b', hairStyle: 'short', eye: '#7ed957', outfit: '#f4f4f4', features: ['catEars', 'catTail'] },
+    lines: {
+      intro: '냐앙? 그 주머니, 뭐 들었어?',
+      join: '흥, 밥 주면 따라가는 거야. 너라서가 아니라.',
+      flee: '냐아앙! 기억해 둔다!',
+      gift: '생선…! 너, 좋은 인간이구냥!',
+      shy: '골골… 아, 아니야! 이건 그냥 숨소리야!',
+    },
+    lore: '달빛 아래 지붕을 걷는 고양이 요정. 반짝이는 것은 일단 훔친다.',
+  },
+
+  // ── 보스 ──
+  dryad: {
+    name: '드라이어드', given: '실바', element: 'leaf', role: '숲의 여왕', boss: true,
+    base: { hp: 160, atk: 10, def: 10, cha: 12, spd: 6 }, grow: { hp: 13, atk: 1.6, def: 1.4, cha: 1.2, spd: 0.4 },
+    skills: ['dryad_vine', 'dryad_spore', 'dryad_bloom', 'dryad_summon'],
+    gift: 'flower', bond: 230,
+    look: { skin: '#e9f5d9', hair: '#3f8f3f', hairStyle: 'long', eye: '#a1d65b', outfit: '#2e6b34', features: ['leafCrown', 'vines'] },
+    lines: {
+      intro: '내 숲을 어지럽히는 자… 뿌리째 돌려보내 주마.',
+      join: '…오랜만에 햇살 같은 마음을 봤구나. 내 숲의 축복을 주마.',
+      flee: '숲이… 잠시 쉬어야겠구나.',
+      gift: '내 숲에서 자란 꽃이로구나. …고맙다.',
+      shy: '이 나이에 설레다니… 나이테가 하나 늘겠구나.',
+    },
+    lore: '천 년을 산 숲의 여왕. 달빛이 흐려진 뒤로 숲을 지키느라 지쳐 있다.',
+  },
+  dragon: {
+    name: '용', given: '이그니스', element: 'fire', role: '불꽃 공주', boss: true,
+    base: { hp: 210, atk: 13, def: 12, cha: 11, spd: 8 }, grow: { hp: 15, atk: 1.9, def: 1.6, cha: 1.2, spd: 0.5 },
+    skills: ['dragon_claw', 'dragon_inferno', 'dragon_roar', 'dragon_summon'],
+    gift: 'gem', bond: 270,
+    look: { skin: '#ffe0cc', hair: '#c1121f', hairStyle: 'long', eye: '#ffb703', outfit: '#6a040f', features: ['dragonHorns', 'dragonWings', 'tiara'] },
+    lines: {
+      intro: '감히 용의 둥지에 발을 들이다니! 재로 만들어 주마!',
+      join: '…흥! 네가 마음에 든 게 아니라, 네 보물이 마음에 든 거다!',
+      flee: '두, 두고 보자! 이건 전략적 후퇴다!',
+      gift: '이 광채…! 내 보물창고 제일 높은 곳에 두겠다!',
+      shy: '이, 이 열기는 브레스 준비일 뿐이다!',
+    },
+    lore: '화산 둥지의 용 공주. 보물을 모으는 것이 자존심이자 외로움의 증표.',
+  },
+  witch: {
+    name: '달의 마녀', given: '녹스', element: 'dark', role: '최종 보스', boss: true, frenzy: true,
+    base: { hp: 290, atk: 15, def: 12, cha: 12, spd: 9 }, grow: { hp: 17, atk: 2.1, def: 1.6, cha: 1.2, spd: 0.6 },
+    skills: ['witch_moonbeam', 'witch_curse', 'witch_eclipse', 'witch_drain', 'witch_summon'],
+    gift: 'tea', bond: 320,
+    look: { skin: '#f4ecff', hair: '#1b1035', hairStyle: 'long', eye: '#e63946', outfit: '#2d1b4e', features: ['witchHat', 'fangs', 'moon'] },
+    lines: {
+      intro: '달빛은 내 것이다. 아무도… 다시는 날 떠나지 못하게.',
+      join: '…차를, 같이 마셔줄래? 아주 오랜만이야, 누군가와.',
+      flee: '달이… 기울어…',
+      gift: '홍차… 옛날에 누군가와 마셨던 그 향이야.',
+      shy: '왜… 나 같은 걸 보고 웃는 거야.',
+    },
+    lore: '숲의 달빛을 삼킨 마녀. 혼자 남겨지는 것이 두려워 모든 빛을 가둬버렸다.',
+  },
+};
+
+const STARTERS = ['slime', 'kitsune', 'mandrake'];
+const BOSSES = ['dryad', 'dragon', 'witch'];
+
+// 막(Act)별 등장 몬무스
+const ACT_POOLS = [
+  ['slime', 'harpy', 'mandrake', 'arachne', 'catsith', 'kitsune'],
+  ['lamia', 'salamander', 'mermaid', 'mimic', 'harpy', 'golem', 'kitsune'],
+  ['dullahan', 'ghost', 'unicorn', 'golem', 'lamia', 'mimic', 'catsith'],
+];
+
+// ── 아이템 ──────────────────────────────────────────────────
+const ITEMS = {
+  potion: { name: '회복 약초', icon: '🌿', price: 22, target: 'ally', desc: '아군 하나의 HP를 45% 회복.' },
+  feather: { name: '불사조 깃털', icon: '🪶', price: 45, target: 'fallenAlly', desc: '쓰러진 아군을 50% HP로 일으킨다.' },
+  elixir: { name: '만병통치약', icon: '🧪', price: 38, target: 'allAllies', desc: '아군 전체 정화 + HP 25% 회복.' },
+  bomb: { name: '꽈리 폭탄', icon: '💣', price: 30, target: 'allEnemies', desc: '적 전체에 큰 피해 (막이 오를수록 강해짐).' },
+  smoke: { name: '연막 구슬', icon: '💨', price: 26, target: 'none', desc: '일반·정예 전투에서 도망친다.' },
+  perfume: { name: '달빛 향수', icon: '🌸', price: 34, target: 'allEnemies', desc: '적 전체의 호감도 +15%.' },
+  // 선물 (호감도 아이템)
+  candy: { name: '별사탕', icon: '🍬', price: 16, target: 'enemy', gift: true, desc: '선물. 슬라임·유령이 좋아한다.' },
+  honey: { name: '꿀단지', icon: '🍯', price: 16, target: 'enemy', gift: true, desc: '선물. 하피·살라만더가 좋아한다.' },
+  tofu: { name: '유부', icon: '🥟', price: 16, target: 'enemy', gift: true, desc: '선물. 여우가 정말 좋아한다.' },
+  flower: { name: '들꽃 다발', icon: '💐', price: 16, target: 'enemy', gift: true, desc: '선물. 맨드레이크·유니콘·드라이어드가 좋아한다.' },
+  fish: { name: '말린 생선', icon: '🐟', price: 16, target: 'enemy', gift: true, desc: '선물. 캣시·라미아가 좋아한다.' },
+  yarn: { name: '털실 뭉치', icon: '🧶', price: 16, target: 'enemy', gift: true, desc: '선물. 아라크네가 좋아한다.' },
+  tea: { name: '홍차 세트', icon: '🫖', price: 18, target: 'enemy', gift: true, desc: '선물. 듀라한·달의 마녀가 좋아한다.' },
+  shell: { name: '조개껍질', icon: '🐚', price: 16, target: 'enemy', gift: true, desc: '선물. 인어가 좋아한다.' },
+  gem: { name: '반짝이 보석', icon: '💎', price: 20, target: 'enemy', gift: true, desc: '선물. 미믹·골렘·용이 좋아한다.' },
+};
+const GIFT_IDS = Object.keys(ITEMS).filter((k) => ITEMS[k].gift);
+
+// ── 부적 (패시브 유물) ───────────────────────────────────────
+const RELICS = {
+  lantern: { name: '낡은 등불', icon: '🏮', rarity: 'start', desc: '전투 후 아군 전체 HP 8% 회복.' },
+  acorn: { name: '도토리 목걸이', icon: '🌰', rarity: 'common', desc: '아군 최대 HP +12%.' },
+  ribbon: { name: '빨간 리본', icon: '🎀', rarity: 'common', desc: '매혹으로 얻는 호감도 +25%.' },
+  whetstone: { name: '숫돌', icon: '🪨', rarity: 'common', desc: '아군이 주는 피해 +15%.' },
+  turtle: { name: '거북 등껍질', icon: '🐢', rarity: 'common', desc: '전투 시작 시 아군 전체에 보호막.' },
+  coin: { name: '행운의 동전', icon: '🪙', rarity: 'common', desc: '획득 골드 +35%.' },
+  bell: { name: '은방울꽃', icon: '🔔', rarity: 'common', desc: '전투 시작 시 아군 전체 재생 2턴.' },
+  teacup: { name: '이 빠진 찻잔', icon: '☕', rarity: 'uncommon', desc: '친구가 될 때마다 아군 전체 HP 25% 회복.' },
+  thorn: { name: '가시 팔찌', icon: '🌹', rarity: 'uncommon', desc: '아군이 공격받으면 공격자에게 반사 피해.' },
+  cloud: { name: '구름 깃털', icon: '☁️', rarity: 'uncommon', desc: '아군이 항상 12% 확률로 공격을 피한다.' },
+  compass: { name: '별 나침반', icon: '🧭', rarity: 'uncommon', desc: '전투 경험치 +30%.' },
+  mooncrystal: { name: '달의 결정', icon: '🔮', rarity: 'boss', desc: '모든 스킬 재사용 대기 -1.' },
+  crown: { name: '작은 왕관', icon: '👑', rarity: 'boss', desc: '파티 정원 +1 (최대 4명).' },
+  heartstone: { name: '하트 스톤', icon: '💗', rarity: 'boss', desc: '매혹 +40%, 공격해도 호감도가 줄지 않는다.' },
+};
+
+return { ELEMENTS, elementMultiplier, STATUSES, SKILLS, SPECIES, STARTERS, BOSSES, ACT_POOLS, ITEMS, GIFT_IDS, RELICS };
+})();
+// ── src/core/rng.js ──
+const __m_src_core_rng_js = (() => {
+// 시드 기반 난수 (mulberry32). 같은 시드면 같은 모험이 펼쳐진다.
+function createRng(seed) {
+  let s = (typeof seed === 'number' ? seed : hashString(String(seed))) >>> 0;
+  const next = () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const rng = {
+    next,
+    float: (min, max) => min + next() * (max - min),
+    int: (min, max) => Math.floor(min + next() * (max - min + 1)),
+    chance: (p) => next() < p,
+    pick: (arr) => arr[Math.floor(next() * arr.length)],
+    weighted(entries) {
+      // entries: [[value, weight], ...]
+      const total = entries.reduce((a, [, w]) => a + w, 0);
+      let r = next() * total;
+      for (const [v, w] of entries) {
+        if ((r -= w) < 0) return v;
+      }
+      return entries[entries.length - 1][0];
+    },
+    shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(next() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    },
+    getState: () => s,
+    setState: (v) => { s = v >>> 0; },
+  };
+  return rng;
+}
+
+function hashString(str) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+return { createRng, hashString };
+})();
+// ── src/core/units.js ──
+const __m_src_core_units_js = (() => {
+const { SPECIES, SKILLS } = __m_src_core_data_js;
+
+let uidCounter = 1;
+function resetUids(n = 1) { uidCounter = n; }
+function nextUid() { return uidCounter++; }
+
+// 스킬 해금 레벨: 1, 1, 3, 5, 8
+const SKILL_UNLOCK = [1, 1, 3, 5, 8];
+
+function unlockedSkills(unit) {
+  const sp = SPECIES[unit.species];
+  return sp.skills.filter((_, i) => unit.level >= SKILL_UNLOCK[Math.min(i, SKILL_UNLOCK.length - 1)]);
+}
+
+function xpToNext(level) {
+  return 10 + level * 7;
+}
+
+function rawStat(sp, key, level) {
+  return sp.base[key] + sp.grow[key] * (level - 1);
+}
+
+/**
+ * 종족과 레벨로 유닛을 만든다.
+ * side: 'ally' | 'enemy'
+ */
+function createUnit(speciesId, level, side = 'enemy', opts = {}) {
+  const sp = SPECIES[speciesId];
+  if (!sp) throw new Error(`unknown species ${speciesId}`);
+  const unit = {
+    uid: nextUid(),
+    species: speciesId,
+    name: opts.name || sp.given,
+    level,
+    xp: 0,
+    element: sp.element,
+    side,
+    boss: !!sp.boss,
+    elite: !!opts.elite,
+    maxHp: 1, hp: 1, atk: 1, def: 1, cha: 1, spd: 1,
+    cd: {},
+    st: {},
+    bond: 0,
+    bondMax: 1,
+    fainted: false,
+    intent: null,
+    joinedAt: opts.joinedAt ?? null,
+  };
+  refreshStats(unit, opts.relics || []);
+  unit.hp = unit.maxHp;
+  return unit;
+}
+
+/** 레벨/부적 변경 후 능력치를 다시 계산 (HP 비율 유지). */
+function refreshStats(unit, relics = []) {
+  const sp = SPECIES[unit.species];
+  const ratio = unit.maxHp > 1 ? unit.hp / unit.maxHp : 1;
+  const eliteMul = unit.elite ? 1.35 : 1;
+  let maxHp = rawStat(sp, 'hp', unit.level) * eliteMul;
+  // 보스가 동료가 되면 '보스 보정'이 사라진다 (여전히 든든하다)
+  if (unit.boss && unit.side === 'ally') maxHp *= 0.42;
+  if (unit.side === 'ally' && relics.includes('acorn')) maxHp *= 1.12;
+  unit.maxHp = Math.round(maxHp);
+  unit.atk = Math.round(rawStat(sp, 'atk', unit.level) * (unit.elite ? 1.12 : 1));
+  unit.def = Math.round(rawStat(sp, 'def', unit.level) * (unit.elite ? 1.1 : 1));
+  unit.cha = Math.round(rawStat(sp, 'cha', unit.level));
+  unit.spd = Math.round(rawStat(sp, 'spd', unit.level));
+  // 호감도 최대치는 자신의 매력에 비례 → 레벨이 올라도 균형 유지
+  unit.bondMax = Math.round(sp.bond * 1.5 * (unit.cha / sp.base.cha) * (unit.elite ? 1.3 : 1));
+  if (!unit.fainted) unit.hp = Math.max(1, Math.round(unit.maxHp * ratio));
+  else unit.hp = 0;
+}
+
+function skillById(id) {
+  const s = SKILLS[id];
+  if (!s) throw new Error(`unknown skill ${id}`);
+  return s;
+}
+
+/** 경험치를 주고, 레벨업 횟수를 반환 */
+function gainXp(unit, amount, relics = []) {
+  if (unit.fainted) return 0;
+  unit.xp += amount;
+  let ups = 0;
+  while (unit.xp >= xpToNext(unit.level)) {
+    unit.xp -= xpToNext(unit.level);
+    levelUp(unit, relics);
+    ups++;
+  }
+  return ups;
+}
+
+function levelUp(unit, relics = []) {
+  const before = unit.maxHp;
+  unit.level += 1;
+  refreshStats(unit, relics);
+  // 레벨업 시 늘어난 최대 HP만큼 회복
+  if (!unit.fainted) unit.hp = Math.min(unit.maxHp, unit.hp + (unit.maxHp - before));
+}
+
+return { resetUids, nextUid, SKILL_UNLOCK, unlockedSkills, xpToNext, createUnit, refreshStats, skillById, gainXp, levelUp };
+})();
+// ── src/core/map.js ──
+const __m_src_core_map_js = (() => {
+// 막(Act)마다 갈림길이 있는 지도를 만든다.
+const MAP_ROWS = 7; // 보스 전 층 수
+const MAP_COLS = 4;
+
+const NODE_TYPES = {
+  battle: { name: '야생 몬무스', icon: '🐾' },
+  elite: { name: '강한 기척', icon: '💢' },
+  event: { name: '수상한 곳', icon: '❓' },
+  shop: { name: '떠돌이 상점', icon: '🛍️' },
+  rest: { name: '모닥불', icon: '🔥' },
+  treasure: { name: '보물', icon: '🎁' },
+  boss: { name: '숲의 주인', icon: '👑' },
+};
+
+function generateMap(rng, act) {
+  const nodes = new Map(); // key "r,c"
+  const key = (r, c) => `${r},${c}`;
+  const get = (r, c) => {
+    const k = key(r, c);
+    if (!nodes.has(k)) nodes.set(k, { id: k, row: r, col: c, type: null, next: [] });
+    return nodes.get(k);
+  };
+
+  const starts = rng.shuffle([0, 1, 2, 3]).slice(0, 3);
+  // 경로 4개: 시작점 3개 + 하나는 겹치게
+  const paths = [...starts, rng.pick(starts)];
+  const edges = new Set();
+  for (let c of paths) {
+    let node = get(0, c);
+    for (let r = 1; r < MAP_ROWS; r++) {
+      let nc = Math.min(MAP_COLS - 1, Math.max(0, c + rng.int(-1, 1)));
+      // 교차 방지: (r-1,c)→(r,nc)와 반대 방향 간선이 있으면 직진
+      if (nc !== c && edges.has(`${r - 1},${nc}>${r},${c}`)) nc = c;
+      const nxt = get(r, nc);
+      const ek = `${r - 1},${c}>${r},${nc}`;
+      if (!edges.has(ek)) { edges.add(ek); node.next.push(nxt.id); }
+      node = nxt;
+      c = nc;
+    }
+  }
+  const boss = { id: 'boss', row: MAP_ROWS, col: 1.5, type: 'boss', next: [] };
+  for (const n of nodes.values()) if (n.row === MAP_ROWS - 1) n.next.push('boss');
+  nodes.set('boss', boss);
+
+  // 타입 배정
+  for (const n of nodes.values()) {
+    if (n.type) continue;
+    if (n.row === 0) n.type = 'battle';
+    else if (n.row === MAP_ROWS - 1) n.type = 'rest';
+    else if (n.row === 3) n.type = 'treasure';
+    else {
+      const w = [['battle', 46], ['event', 24]];
+      if (n.row >= 2) w.push(['elite', act === 1 ? 10 : 14], ['shop', 11]);
+      if (n.row >= 2 && n.row !== MAP_ROWS - 2) w.push(['rest', 7]);
+      n.type = rng.weighted(w);
+    }
+  }
+  // 같은 줄에 상점/휴식이 너무 몰리지 않게 정리
+  for (let r = 1; r < MAP_ROWS - 1; r++) {
+    const row = [...nodes.values()].filter((n) => n.row === r);
+    for (const t of ['shop', 'rest', 'elite']) {
+      const same = row.filter((n) => n.type === t);
+      for (let i = 1; i < same.length; i++) same[i].type = rng.pick(['battle', 'event']);
+    }
+  }
+  const list = [...nodes.values()].sort((a, b) => a.row - b.row || a.col - b.col);
+  return { act, nodes: Object.fromEntries(list.map((n) => [n.id, n])) };
+}
+
+function startNodes(map) {
+  return Object.values(map.nodes).filter((n) => n.row === 0);
+}
+
+return { MAP_ROWS, MAP_COLS, NODE_TYPES, generateMap, startNodes };
+})();
+// ── src/core/battle.js ──
+const __m_src_core_battle_js = (() => {
+// 전투 엔진. DOM을 전혀 모르는 순수 로직이며,
+// 모든 결과를 events 배열로 돌려줘서 UI가 순서대로 연출한다.
+const { SKILLS, STATUSES, SPECIES, ITEMS, elementMultiplier } = __m_src_core_data_js;
+const { createUnit, unlockedSkills } = __m_src_core_units_js;
+
+const MAX_ENEMIES = 4;
+const TURN_LIMIT = 30; // 이 턴이 지나면 해가 저물어 적이 돌아간다
+
+// ── 조회 도우미 ─────────────────────────────────────────────
+const alive = (u) => u && !u.fainted && !u.gone && u.hp > 0;
+const livingAllies = (b) => b.allies.filter(alive);
+const livingEnemies = (b) => b.enemies.filter(alive);
+const sideOf = (b, u) => (u.side === 'ally' ? b.allies : b.enemies);
+const foesOf = (b, u) => (u.side === 'ally' ? b.enemies : b.allies);
+const findUnit = (b, uid) => b.allies.find((u) => u.uid === uid) || b.enemies.find((u) => u.uid === uid);
+const has = (run, relic) => run.relics.includes(relic);
+
+function createBattle(run, rng, enemies, kind = 'normal') {
+  const b = {
+    kind,
+    allies: run.party,
+    enemies,
+    turn: 0,
+    phase: 'player',
+    acted: [],
+    keeperUsed: false,
+    befriended: [],
+    defeated: [],
+    goldBonus: 0,
+    events: [],
+  };
+  for (const u of run.party) { u.st = {}; u.cd = {}; u.intent = null; }
+  for (const e of enemies) { e.st = {}; e.cd = {}; e.bond = 0; }
+
+  const ev = [];
+  if (has(run, 'turtle')) {
+    for (const a of livingAllies(b)) addShield(a, Math.round(8 + a.level * 2.2), ev);
+  }
+  if (has(run, 'bell')) {
+    for (const a of livingAllies(b)) applyStatus(a, 'regen', { turns: 2 }, ev);
+  }
+  b.events.push(...ev);
+  for (const e of enemies) rollIntent(b, rng, e);
+  startPlayerTurn(b, run);
+  return b;
+}
+
+// ── 상태이상 ────────────────────────────────────────────────
+function applyStatus(unit, status, eff, ev, src) {
+  if (!alive(unit)) return;
+  if (status === 'shield') return addShield(unit, eff.value, ev);
+  if (status === 'poison') {
+    const amt = Math.max(1, Math.round(eff.amount * (src ? Math.max(1, src.atk / 10) : 1)));
+    unit.st.poison = (unit.st.poison || 0) + amt;
+    ev.push({ type: 'status', uid: unit.uid, status, value: unit.st.poison });
+    return;
+  }
+  const cur = unit.st[status] || 0;
+  unit.st[status] = Math.max(cur, eff.turns || 1);
+  ev.push({ type: 'status', uid: unit.uid, status, value: unit.st[status] });
+}
+
+function addShield(unit, value, ev) {
+  unit.st.shield = (unit.st.shield || 0) + value;
+  ev.push({ type: 'status', uid: unit.uid, status: 'shield', value: unit.st.shield });
+}
+
+function cleanse(unit, ev) {
+  let any = false;
+  for (const k of Object.keys(unit.st)) {
+    if (STATUSES[k]?.bad) { delete unit.st[k]; any = true; }
+  }
+  if (any) ev.push({ type: 'cleanse', uid: unit.uid });
+}
+
+function turnStartTick(b, run, units, ev) {
+  for (const u of units) {
+    if (!alive(u)) continue;
+    delete u.st.shield;
+    for (const [k, def] of Object.entries(STATUSES)) {
+      if (def.tick === 'start' && u.st[k]) {
+        u.st[k]--;
+        if (u.st[k] <= 0) delete u.st[k];
+      }
+    }
+    if (u.st.poison) dealRaw(b, run, u, u.st.poison, 'poison', ev);
+    if (alive(u) && u.st.burn) dealRaw(b, run, u, Math.max(1, Math.round(u.maxHp * 0.07)), 'burn', ev);
+    if (alive(u) && u.st.regen) heal(u, Math.max(1, Math.round(u.maxHp * 0.08)), ev);
+  }
+}
+
+function turnEndTick(units) {
+  for (const u of units) {
+    if (!alive(u)) continue;
+    for (const k of Object.keys(u.cd)) if (u.cd[k] > 0) u.cd[k]--;
+    if (u.st.poison) { u.st.poison--; if (u.st.poison <= 0) delete u.st.poison; }
+    for (const [k, def] of Object.entries(STATUSES)) {
+      if (def.tick === 'end' && k !== 'poison' && u.st[k]) {
+        u.st[k]--;
+        if (u.st[k] <= 0) delete u.st[k];
+      }
+    }
+  }
+}
+
+// ── 피해/회복/호감 ──────────────────────────────────────────
+function heal(unit, amount, ev) {
+  if (!alive(unit)) return 0;
+  const before = unit.hp;
+  unit.hp = Math.min(unit.maxHp, unit.hp + Math.round(amount));
+  const healed = unit.hp - before;
+  ev.push({ type: 'heal', uid: unit.uid, amount: healed });
+  return healed;
+}
+
+/** 방어 계산 없이 그대로 HP를 깎는다 (독, 화상, 폭탄 등). */
+function dealRaw(b, run, unit, amount, cause, ev) {
+  amount = Math.max(1, Math.round(amount));
+  unit.hp = Math.max(0, unit.hp - amount);
+  ev.push({ type: 'damage', uid: unit.uid, amount, cause });
+  if (unit.st.sleep && cause !== 'poison' && cause !== 'burn') { delete unit.st.sleep; ev.push({ type: 'wake', uid: unit.uid }); }
+  if (unit.side === 'enemy') loseBond(run, unit, amount, ev);
+  checkDown(b, run, unit, ev);
+  return amount;
+}
+
+function loseBond(run, enemy, dmg, ev) {
+  if (has(run, 'heartstone') || enemy.bond <= 0) return;
+  const loss = Math.round((dmg / enemy.maxHp) * enemy.bondMax * 0.3);
+  if (loss <= 0) return;
+  enemy.bond = Math.max(0, enemy.bond - loss);
+  ev.push({ type: 'bond', uid: enemy.uid, amount: -loss });
+}
+
+function checkDown(b, run, unit, ev) {
+  if (unit.hp > 0 || unit.fainted || unit.gone) return;
+  if (unit.side === 'ally') {
+    unit.fainted = true;
+    unit.st = {};
+    ev.push({ type: 'faint', uid: unit.uid });
+  } else {
+    unit.gone = 'fled';
+    b.defeated.push(unit);
+    ev.push({ type: 'flee', uid: unit.uid, line: SPECIES[unit.species].lines.flee });
+  }
+}
+
+function calcDamage(att, def, skill, run, rng, opts = {}) {
+  const elem = skill.element || att.element;
+  const eMul = elementMultiplier(elem, def.element);
+  let atk = att.atk;
+  let dmg = skill.power * (atk / 10) * (atk / (atk + def.def * 0.6)) * 1.3;
+  dmg *= eMul;
+  if (att.st.atkUp) dmg *= 1.35;
+  if (att.st.atkDown) dmg *= 0.7;
+  if (def.st.defUp) dmg *= 0.65;
+  if (def.st.defDown) dmg *= 1.3;
+  if (att.side === 'ally' && has(run, 'whetstone')) dmg *= 1.15;
+  if (opts.noRandom) return { dmg: Math.max(1, Math.round(dmg)), crit: false, eMul };
+  const crit = rng.chance(Math.min(0.3, att.spd / 160));
+  if (crit) dmg *= 1.5;
+  dmg *= rng.float(0.9, 1.1);
+  return { dmg: Math.max(1, Math.round(dmg)), crit, eMul };
+}
+
+function hitWithSkill(b, run, rng, att, target, skill, ev) {
+  if (!alive(target)) return 0;
+  // 회피
+  let dodgeChance = target.st.dodge ? 0.5 : 0;
+  if (target.side === 'ally' && has(run, 'cloud')) dodgeChance = 1 - (1 - dodgeChance) * 0.88;
+  if (dodgeChance && rng.chance(dodgeChance)) {
+    ev.push({ type: 'miss', uid: target.uid });
+    return 0;
+  }
+  const { dmg: raw, crit, eMul } = calcDamage(att, target, skill, run, rng);
+  let dmg = raw;
+  if (target.st.shield) {
+    const absorbed = Math.min(target.st.shield, dmg);
+    target.st.shield -= absorbed;
+    if (target.st.shield <= 0) delete target.st.shield;
+    dmg -= absorbed;
+    if (absorbed) ev.push({ type: 'block', uid: target.uid, amount: absorbed });
+  }
+  if (dmg > 0) {
+    target.hp = Math.max(0, target.hp - dmg);
+    ev.push({ type: 'damage', uid: target.uid, amount: dmg, crit, eff: eMul > 1 ? 'super' : eMul < 1 ? 'weak' : null });
+    if (target.st.sleep) { delete target.st.sleep; ev.push({ type: 'wake', uid: target.uid }); }
+    if (target.side === 'enemy') loseBond(run, target, dmg, ev);
+  }
+  if (skill.lifesteal && dmg > 0) heal(att, dmg * skill.lifesteal, ev);
+  if (skill.gold && att.side === 'ally') {
+    b.goldBonus += skill.gold;
+    ev.push({ type: 'gold', uid: att.uid, amount: skill.gold });
+  }
+  // 가시 팔찌 반사
+  if (target.side === 'ally' && has(run, 'thorn') && dmg > 0 && alive(att)) {
+    dealRaw(b, run, att, Math.max(2, Math.round(raw * 0.2)), 'thorn', ev);
+  }
+  checkDown(b, run, target, ev);
+  return dmg;
+}
+
+function receptivity(enemy) {
+  let r = 1 + 0.6 * (1 - enemy.hp / enemy.maxHp);
+  // 보스는 HP가 절반 이하가 되기 전까지 마음의 벽이 있다
+  if (enemy.boss && enemy.hp > enemy.maxHp * 0.5) r *= 0.4;
+  return r;
+}
+
+function charmAmount(run, att, enemy, power) {
+  let amt = power * (att.cha / 10) * receptivity(enemy);
+  if (has(run, 'ribbon')) amt *= 1.25;
+  if (has(run, 'heartstone')) amt *= 1.4;
+  return amt;
+}
+
+function gainBond(b, run, enemy, amount, ev, reason) {
+  if (!alive(enemy)) return;
+  amount = Math.max(1, Math.round(amount));
+  const before = enemy.bond;
+  enemy.bond = Math.min(enemy.bondMax, enemy.bond + amount);
+  ev.push({ type: 'bond', uid: enemy.uid, amount: enemy.bond - before, reason });
+  if (enemy.bond >= enemy.bondMax) {
+    enemy.gone = 'friend';
+    b.befriended.push(enemy);
+    ev.push({ type: 'befriend', uid: enemy.uid, line: SPECIES[enemy.species].lines.join });
+    if (has(run, 'teacup')) {
+      for (const a of livingAllies(b)) heal(a, a.maxHp * 0.25, ev);
+    }
+  }
+}
+
+// ── 스킬 사용 ───────────────────────────────────────────────
+function skillReady(unit, skillId) {
+  return !(unit.cd[skillId] > 0);
+}
+
+function usableSkills(b, unit) {
+  return unlockedSkills(unit).filter((id) => {
+    if (!skillReady(unit, id)) return false;
+    const s = SKILLS[id];
+    if (s.target === 'fallenAlly') return sideOf(b, unit).some((u) => u.fainted);
+    if (s.kind === 'summon') return livingEnemies(b).length < MAX_ENEMIES;
+    return true;
+  });
+}
+
+function validTargets(b, unit, skill) {
+  switch (skill.target) {
+    case 'enemy': {
+      const foes = foesOf(b, unit).filter(alive);
+      return foes;
+    }
+    case 'ally': return sideOf(b, unit).filter(alive);
+    case 'fallenAlly': return sideOf(b, unit).filter((u) => u.fainted);
+    default: return [];
+  }
+}
+
+function needsTarget(skill) {
+  return skill.target === 'enemy' || skill.target === 'ally' || skill.target === 'fallenAlly';
+}
+
+function shieldValue(user, amount) {
+  return Math.round(amount * (6 + user.def * 0.8 + user.atk * 0.6));
+}
+
+/** 유닛이 스킬을 사용한다. 이벤트 배열을 반환. */
+function performSkill(b, run, rng, actor, skillId, targetUid) {
+  const ev = [];
+  const skill = SKILLS[skillId];
+  ev.push({ type: 'action', uid: actor.uid, skill: skillId });
+
+  if (skill.cd > 0) {
+    // cd N = 사용 후 N턴 동안 사용 불가 (턴 끝마다 1 감소)
+    const reduce = has(run, 'mooncrystal') && actor.side === 'ally' ? 1 : 0;
+    const wait = Math.max(0, skill.cd - reduce);
+    if (wait > 0) actor.cd[skillId] = wait + 1;
+  }
+
+  // 대상 결정
+  const foes = foesOf(b, actor);
+  const friends = sideOf(b, actor);
+  let targets = [];
+  switch (skill.target) {
+    case 'enemy': {
+      let t = foes.find((u) => u.uid === targetUid && alive(u));
+      if (!t) t = foes.find(alive);
+      if (t) targets = [t];
+      break;
+    }
+    case 'allEnemies': targets = foes.filter(alive); break;
+    case 'ally': {
+      let t = friends.find((u) => u.uid === targetUid && alive(u));
+      if (!t) t = actor;
+      targets = [t];
+      break;
+    }
+    case 'fallenAlly': {
+      const t = friends.find((u) => u.uid === targetUid && u.fainted) || friends.find((u) => u.fainted);
+      if (t) targets = [t];
+      break;
+    }
+    case 'allAllies': targets = friends.filter(alive); break;
+    case 'self': targets = [actor]; break;
+  }
+
+  switch (skill.kind) {
+    case 'attack':
+      for (const t of targets) {
+        for (let h = 0; h < skill.hits; h++) {
+          if (!alive(t)) break;
+          const dealt = hitWithSkill(b, run, rng, actor, t, skill, ev);
+          if (h === skill.hits - 1 || !alive(t)) applyEffects(b, run, rng, actor, t, skill, ev, dealt);
+        }
+      }
+      break;
+    case 'charm':
+      for (const t of targets) {
+        if (actor.side === 'ally') {
+          gainBond(b, run, t, charmAmount(run, actor, t, skill.power), ev, 'charm');
+        } else {
+          // 적의 매혹: 넋을 잃고 한 턴 멍해질 수 있다
+          if (rng.chance(0.45)) {
+            applyStatus(t, 'sleep', { turns: 1 }, ev);
+            ev.push({ type: 'text', msg: `${t.name}${josa(t.name, '이', '가')} 넋을 잃었다!` });
+          } else {
+            ev.push({ type: 'resist', uid: t.uid });
+          }
+        }
+        applyEffects(b, run, rng, actor, t, skill, ev, 0);
+      }
+      break;
+    case 'heal':
+      for (const t of targets) {
+        if (skill.revive) {
+          t.fainted = false;
+          t.hp = Math.max(1, Math.round(t.maxHp * skill.revive));
+          ev.push({ type: 'revive', uid: t.uid, amount: t.hp });
+        } else {
+          if (skill.cleanse) cleanse(t, ev);
+          heal(t, skill.power * (actor.cha / 10), ev);
+        }
+      }
+      break;
+    case 'buff':
+    case 'debuff':
+      for (const t of targets) {
+        if (skill.kind === 'debuff' && t.side !== actor.side && t.st.dodge && rng.chance(0.5)) {
+          ev.push({ type: 'miss', uid: t.uid });
+          continue;
+        }
+        applyEffects(b, run, rng, actor, t, skill, ev, 0);
+      }
+      break;
+    case 'summon': {
+      const lvl = Math.max(1, actor.level - 3);
+      const minion = createUnit(skill.summon, lvl, actor.side);
+      minion.summoned = true;
+      if (actor.side === 'enemy' && livingEnemies(b).length < MAX_ENEMIES) {
+        b.enemies.push(minion);
+        rollIntent(b, rng, minion);
+        ev.push({ type: 'summon', uid: minion.uid });
+      }
+      break;
+    }
+    case 'wait':
+      ev.push({ type: 'text', msg: `${actor.name}${josa(actor.name, '은', '는')} 얼굴을 붉히며 머뭇거린다…`, uid: actor.uid, shy: true });
+      break;
+  }
+  return ev;
+}
+
+function applyEffects(b, run, rng, actor, target, skill, ev) {
+  for (const eff of skill.effects) {
+    if (eff.chance != null && !rng.chance(eff.chance)) continue;
+    let t = target;
+    if (eff.on === 'randomAlly') {
+      const pool = sideOf(b, actor).filter(alive);
+      t = rng.pick(pool);
+    }
+    if (!alive(t)) continue;
+    if (eff.status === 'shield') {
+      addShield(t, shieldValue(actor, eff.amount), ev);
+    } else {
+      applyStatus(t, eff.status, eff, ev, actor);
+    }
+  }
+}
+
+// ── 플레이어 턴 ─────────────────────────────────────────────
+function canAct(b, unit) {
+  return b.phase === 'player' && alive(unit) && unit.side === 'ally' && !b.acted.includes(unit.uid) && !unit.st.sleep;
+}
+
+function allyAct(b, run, rng, uid, skillId, targetUid) {
+  const actor = findUnit(b, uid);
+  if (!canAct(b, actor)) throw new Error('이 유닛은 지금 행동할 수 없습니다');
+  if (!usableSkills(b, actor).includes(skillId)) throw new Error('사용할 수 없는 스킬');
+  const ev = performSkill(b, run, rng, actor, skillId, targetUid);
+  b.acted.push(uid);
+  checkEnd(b, ev);
+  return ev;
+}
+
+/** 등불지기(플레이어)의 행동: 말 걸기 */
+function keeperTalk(b, run, rng, targetUid) {
+  if (b.keeperUsed || b.phase !== 'player') throw new Error('이번 턴엔 이미 행동했습니다');
+  const t = findUnit(b, targetUid);
+  if (!t || t.side !== 'enemy' || !alive(t)) throw new Error('대상이 없습니다');
+  const ev = [{ type: 'keeper', action: 'talk', uid: t.uid }];
+  let amt = t.bondMax * 0.09 * receptivity(t);
+  if (has(run, 'ribbon')) amt *= 1.25;
+  gainBond(b, run, t, amt, ev, 'talk');
+  b.keeperUsed = true;
+  checkEnd(b, ev);
+  return ev;
+}
+
+/** 등불지기 행동: 아이템 사용 */
+function useItem(b, run, rng, itemId, targetUid) {
+  if (b.keeperUsed || b.phase !== 'player') throw new Error('이번 턴엔 이미 행동했습니다');
+  if (!(run.items[itemId] > 0)) throw new Error('아이템이 없습니다');
+  const item = ITEMS[itemId];
+  const ev = [{ type: 'keeper', action: 'item', item: itemId, uid: targetUid }];
+  const t = targetUid != null ? findUnit(b, targetUid) : null;
+
+  if (item.gift) {
+    if (!t || t.side !== 'enemy' || !alive(t)) throw new Error('선물할 대상이 없습니다');
+    const sp = SPECIES[t.species];
+    const fav = sp.gift === itemId;
+    let frac = fav ? (t.boss ? 0.3 : 0.45) : 0.15;
+    if (t.boss && t.hp > t.maxHp * 0.5) frac *= 0.5;
+    if (fav) ev.push({ type: 'speech', uid: t.uid, line: sp.lines.gift });
+    gainBond(b, run, t, t.bondMax * frac, ev, fav ? 'favorite' : 'gift');
+  } else {
+    switch (itemId) {
+      case 'potion':
+        if (!t || !alive(t) || t.side !== 'ally') throw new Error('대상 오류');
+        heal(t, Math.max(20, t.maxHp * 0.45), ev);
+        break;
+      case 'feather':
+        if (!t || !t.fainted) throw new Error('쓰러진 아군이 필요합니다');
+        t.fainted = false;
+        t.hp = Math.round(t.maxHp * 0.5);
+        ev.push({ type: 'revive', uid: t.uid, amount: t.hp });
+        break;
+      case 'elixir':
+        for (const a of livingAllies(b)) { cleanse(a, ev); heal(a, a.maxHp * 0.25, ev); }
+        break;
+      case 'bomb':
+        for (const e of livingEnemies(b)) dealRaw(b, run, e, 14 + run.act * 14 + e.maxHp * 0.08, 'bomb', ev);
+        break;
+      case 'perfume':
+        for (const e of livingEnemies(b)) gainBond(b, run, e, e.bondMax * 0.15 * (e.boss && e.hp > e.maxHp * 0.5 ? 0.5 : 1), ev, 'perfume');
+        break;
+      case 'smoke':
+        if (b.kind === 'boss') throw new Error('보스에게서는 도망칠 수 없다!');
+        b.phase = 'fled';
+        ev.push({ type: 'escape' });
+        break;
+      default:
+        throw new Error('알 수 없는 아이템');
+    }
+  }
+  run.items[itemId]--;
+  if (run.items[itemId] <= 0) delete run.items[itemId];
+  b.keeperUsed = true;
+  checkEnd(b, ev);
+  return ev;
+}
+
+function checkEnd(b, ev) {
+  if (b.phase === 'won' || b.phase === 'lost' || b.phase === 'fled') return;
+  // 보스가 사라지면 소환된 권속도 함께 떠난다
+  if (b.kind === 'boss' && b.enemies.some((e) => e.boss && e.gone) && !b.enemies.some((e) => e.boss && alive(e))) {
+    const minions = livingEnemies(b).filter((e) => e.summoned);
+    for (const m of minions) { m.gone = 'left'; ev.push({ type: 'leave', uid: m.uid }); }
+    if (minions.length) ev.push({ type: 'text', msg: '주인을 따라 권속들도 흩어졌다.' });
+  }
+  if (livingEnemies(b).length === 0) {
+    b.phase = 'won';
+    ev.push({ type: 'won' });
+  } else if (livingAllies(b).length === 0) {
+    b.phase = 'lost';
+    ev.push({ type: 'lost' });
+  }
+}
+
+function startPlayerTurn(b, run) {
+  b.turn++;
+  b.acted = [];
+  b.keeperUsed = false;
+  const ev = [{ type: 'turn', side: 'ally', turn: b.turn }];
+  turnStartTick(b, run, b.allies, ev);
+  // 잠든 아군은 자동으로 행동 완료 처리
+  for (const a of livingAllies(b)) if (a.st.sleep) b.acted.push(a.uid);
+  b.phase = 'player';
+  checkEnd(b, ev);
+  b.events.push(...ev);
+  return ev;
+}
+
+/** 플레이어 턴 종료 → 적 턴 진행 → 다음 플레이어 턴 시작. */
+function endPlayerTurn(b, run, rng) {
+  if (b.phase !== 'player') throw new Error('플레이어 턴이 아닙니다');
+  const ev = [];
+  turnEndTick(b.allies);
+  b.phase = 'enemy';
+  ev.push({ type: 'turn', side: 'enemy', turn: b.turn });
+  turnStartTick(b, run, b.enemies, ev);
+  checkEnd(b, ev);
+
+  const order = livingEnemies(b).slice().sort((x, y) => y.spd - x.spd);
+  for (const e of order) {
+    if (b.phase !== 'enemy') break;
+    if (!alive(e)) continue;
+    if (e.st.sleep) { ev.push({ type: 'sleeping', uid: e.uid }); continue; }
+    if (!e.intent) rollIntent(b, rng, e);
+    let { skill, target } = e.intent;
+    // 대상이 사라졌으면 다시 고른다
+    const sk = SKILLS[skill];
+    if (sk.target === 'enemy') {
+      const t = findUnit(b, target);
+      if (!alive(t)) target = pickTarget(b, rng, e)?.uid;
+    }
+    ev.push(...performSkill(b, run, rng, e, skill, target));
+    checkEnd(b, ev);
+    // 광폭화: HP 절반 이하의 최종 보스는 한 번 더 행동한다
+    if (b.phase === 'enemy' && alive(e) && SPECIES[e.species].frenzy && e.hp <= e.maxHp * 0.5 && !e.st.sleep) {
+      if (!e.frenzied) { e.frenzied = true; ev.push({ type: 'text', msg: `${e.name}의 눈이 붉게 빛난다! 달이 차오른다…`, uid: e.uid }); }
+      const extra = rollIntent(b, rng, e);
+      if (extra.skill !== 'hesitate') ev.push(...performSkill(b, run, rng, e, extra.skill, extra.target));
+      checkEnd(b, ev);
+    }
+  }
+  if (b.phase === 'enemy' && b.turn >= TURN_LIMIT) {
+    for (const e of livingEnemies(b)) { e.gone = 'left'; ev.push({ type: 'leave', uid: e.uid }); }
+    ev.push({ type: 'text', msg: '해가 저물었다… 몬무스들이 하품을 하며 돌아간다.' });
+    b.phase = 'won';
+    ev.push({ type: 'won' });
+    return ev;
+  }
+  if (b.phase === 'enemy') {
+    turnEndTick(b.enemies);
+    for (const e of livingEnemies(b)) rollIntent(b, rng, e);
+    ev.push(...startPlayerTurn(b, run));
+  }
+  return ev;
+}
+
+// ── 적 AI ──────────────────────────────────────────────────
+function pickTarget(b, rng, enemy) {
+  const allies = livingAllies(b);
+  if (!allies.length) return null;
+  const taunters = allies.filter((a) => a.st.taunt);
+  if (taunters.length) return rng.pick(taunters);
+  if (rng.chance(0.35)) return allies.reduce((m, a) => (a.hp / a.maxHp < m.hp / m.maxHp ? a : m));
+  return rng.pick(allies);
+}
+
+function rollIntent(b, rng, enemy) {
+  const bondRatio = enemy.bond / enemy.bondMax;
+  if (bondRatio >= 0.6 && rng.chance(0.25 + (bondRatio - 0.6))) {
+    enemy.intent = { skill: 'hesitate', target: null };
+    return enemy.intent;
+  }
+  const options = [];
+  for (const id of usableSkills(b, enemy)) {
+    const s = SKILLS[id];
+    let w = 1;
+    if (s.kind === 'attack') w = s.target === 'allEnemies' ? 2.4 : 3;
+    else if (s.kind === 'heal') {
+      const hurt = livingEnemies(b).some((x) => x.hp < x.maxHp * 0.6);
+      w = hurt ? 2.5 : 0;
+    } else if (s.kind === 'buff') {
+      const already = s.effects.every((eff) => enemy.st[eff.status]);
+      w = already ? 0 : 1.2;
+    } else if (s.kind === 'summon') w = enemy.hp < enemy.maxHp * 0.85 ? 2.2 : 0.6;
+    else if (s.kind === 'charm') w = 0.7;
+    else if (s.kind === 'debuff') w = 1.3;
+    if (s.cd >= 2) w *= 1.2; // 큰 기술은 쓸 수 있을 때 쓰자
+    if (w > 0) options.push([id, w]);
+  }
+  const skill = options.length ? rng.weighted(options) : 'struggle';
+  const sk = SKILLS[skill];
+  let target = null;
+  if (sk.target === 'enemy') target = pickTarget(b, rng, enemy)?.uid ?? null;
+  if (sk.target === 'ally') {
+    const mates = livingEnemies(b);
+    target = mates.reduce((m, a) => (a.hp / a.maxHp < m.hp / m.maxHp ? a : m)).uid;
+  }
+  enemy.intent = { skill, target };
+  return enemy.intent;
+}
+
+// 받침 유무에 따른 조사 선택
+function josa(word, withBatchim, without) {
+  const ch = word.charCodeAt(word.length - 1);
+  if (ch < 0xac00 || ch > 0xd7a3) return without;
+  return (ch - 0xac00) % 28 ? withBatchim : without;
+}
+
+return { MAX_ENEMIES, TURN_LIMIT, alive, livingAllies, livingEnemies, findUnit, createBattle, calcDamage, receptivity, skillReady, usableSkills, validTargets, needsTarget, performSkill, canAct, allyAct, keeperTalk, useItem, startPlayerTurn, endPlayerTurn, rollIntent, josa };
+})();
+// ── src/core/run.js ──
+const __m_src_core_run_js = (() => {
+// 한 번의 모험(런) 진행을 담당하는 순수 로직
+const { createRng } = __m_src_core_rng_js;
+const { SPECIES, ITEMS, RELICS, ACT_POOLS, BOSSES, GIFT_IDS } = __m_src_core_data_js;
+const { createUnit, refreshStats, gainXp, xpToNext, levelUp, resetUids } = __m_src_core_units_js;
+const { generateMap, startNodes, MAP_ROWS } = __m_src_core_map_js;
+const { createBattle, alive } = __m_src_core_battle_js;
+
+const ACTS = 3;
+const ACT_NAMES = ['속삭이는 숲', '불꽃 골짜기', '달이 진 성'];
+const ACT_BASE_LEVEL = [2, 8, 15];
+const BOSS_LEVEL = [7, 13, 20];
+
+function attachRng(run, state) {
+  const rng = createRng(run.seed);
+  if (state != null) rng.setState(state);
+  Object.defineProperty(run, 'rng', { value: rng, enumerable: false, writable: true, configurable: true });
+  return run;
+}
+
+function newRun(seed, starterId) {
+  resetUids(1);
+  const run = {
+    version: 1,
+    seed,
+    act: 1,
+    map: null,
+    nodeId: null,
+    floor: 0,
+    party: [],
+    maxParty: 3,
+    relics: ['lantern'],
+    items: { potion: 2, [SPECIES[starterId].gift]: 1 },
+    gold: 45,
+    stats: { battles: 0, befriended: [], defeated: 0, turns: 0, goldEarned: 0 },
+    over: null, // 'win' | 'true' | 'lose'
+  };
+  attachRng(run);
+  run.party.push(createUnit(starterId, 4, 'ally', { relics: run.relics, joinedAt: 0 }));
+  run.map = generateMap(run.rng, 1);
+  return run;
+}
+
+function serializeRun(run) {
+  return JSON.stringify({ ...run, rngState: run.rng.getState() });
+}
+
+function deserializeRun(json) {
+  const data = JSON.parse(json);
+  const { rngState, ...run } = data;
+  attachRng(run, rngState);
+  const maxUid = run.party.reduce((m, u) => Math.max(m, u.uid), 0);
+  resetUids(maxUid + 1000);
+  return run;
+}
+
+function availableNodes(run) {
+  if (run.nodeId == null) return startNodes(run.map);
+  return run.map.nodes[run.nodeId].next.map((id) => run.map.nodes[id]);
+}
+
+function partyLevel(run) {
+  const ls = run.party.map((u) => u.level);
+  return Math.round(ls.reduce((a, b) => a + b, 0) / ls.length);
+}
+
+// ── 조우 생성 ───────────────────────────────────────────────
+function generateEncounter(run, kind, row) {
+  const rng = run.rng;
+  const act = run.act;
+  const pool = ACT_POOLS[act - 1];
+  const base = ACT_BASE_LEVEL[act - 1] + Math.floor(row * 0.85);
+  if (kind === 'boss') {
+    const boss = createUnit(BOSSES[act - 1], BOSS_LEVEL[act - 1], 'enemy');
+    return [boss];
+  }
+  if (kind === 'elite') {
+    const sp = rng.pick(pool);
+    const elite = createUnit(sp, base + 2, 'enemy', { elite: true });
+    const out = [elite];
+    if (act >= 2 || rng.chance(0.4)) out.push(createUnit(rng.pick(pool), base, 'enemy'));
+    return out;
+  }
+  let count;
+  if (act === 1) count = row === 0 ? 1 : row <= 2 ? rng.weighted([[1, 1], [2, 2]]) : rng.weighted([[2, 3], [3, 1]]);
+  else if (act === 2) count = rng.weighted([[2, 3], [3, 2]]);
+  else count = rng.weighted([[2, 2], [3, 3]]);
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    out.push(createUnit(rng.pick(pool), Math.max(1, base + rng.int(-1, 0)), 'enemy'));
+  }
+  return out;
+}
+
+function beginBattle(run, kind, enemies) {
+  const row = run.nodeId && run.map.nodes[run.nodeId] ? run.map.nodes[run.nodeId].row : 0;
+  enemies = enemies || generateEncounter(run, kind, row);
+  return createBattle(run, run.rng, enemies, kind);
+}
+
+// ── 노드 진입 ───────────────────────────────────────────────
+/** 노드로 이동. 반환값은 UI가 처리할 화면 정보. */
+function enterNode(run, nodeId) {
+  const ok = availableNodes(run).some((n) => n.id === nodeId);
+  if (!ok) throw new Error('갈 수 없는 길입니다');
+  run.nodeId = nodeId;
+  run.floor++;
+  const node = run.map.nodes[nodeId];
+  switch (node.type) {
+    case 'battle':
+    case 'elite':
+    case 'boss':
+      return { type: 'battle', battle: beginBattle(run, node.type) };
+    case 'shop':
+      return { type: 'shop', shop: generateShop(run) };
+    case 'rest':
+      return { type: 'rest' };
+    case 'treasure':
+      return { type: 'treasure', loot: openTreasure(run) };
+    case 'event':
+      return { type: 'event' };
+  }
+  throw new Error('unknown node');
+}
+
+// ── 전투 보상 ───────────────────────────────────────────────
+function goldMul(run) { return run.relics.includes('coin') ? 1.35 : 1; }
+
+function addGold(run, amount) {
+  const g = Math.round(amount);
+  run.gold += g;
+  if (g > 0) run.stats.goldEarned += g;
+  return g;
+}
+
+function finishBattle(run, battle) {
+  const rng = run.rng;
+  const result = { gold: 0, xp: 0, levelUps: [], items: [], relicChoices: [], recruits: [], fled: battle.phase === 'fled' };
+  run.stats.turns += battle.turn;
+  // 상태 초기화 & 쓰러진 아군은 1 HP로 일어나지 않는다 (휴식/깃털 필요)
+  for (const u of run.party) { u.st = {}; u.cd = {}; u.intent = null; }
+  if (battle.phase === 'lost') return result;
+  if (battle.phase === 'fled') return result;
+
+  run.stats.battles++;
+  run.stats.defeated += battle.defeated.length;
+  const all = [...battle.defeated, ...battle.befriended].filter((e) => !e.summoned);
+  const kindMul = battle.kind === 'boss' ? 2.5 : battle.kind === 'elite' ? 1.6 : 1;
+  let xp = all.reduce((s, e) => s + 4 + e.level * 4, 0) * kindMul;
+  if (run.relics.includes('compass')) xp *= 1.3;
+  result.xp = Math.round(xp);
+
+  const baseGold = battle.kind === 'boss' ? 70 + run.act * 15 : battle.kind === 'elite' ? 28 + run.act * 10 : rng.int(10, 16) + run.act * 4;
+  result.gold = addGold(run, (baseGold + battle.goldBonus) * goldMul(run));
+
+  for (const u of run.party) {
+    if (!alive(u)) continue;
+    const before = u.level;
+    const ups = gainXp(u, result.xp, run.relics);
+    if (ups) result.levelUps.push({ uid: u.uid, name: u.name, from: before, to: u.level });
+  }
+  // 등불: 전투 후 회복
+  if (run.relics.includes('lantern')) {
+    for (const u of run.party) if (alive(u)) u.hp = Math.min(u.maxHp, u.hp + Math.round(u.maxHp * 0.08));
+  }
+
+  // 아이템 드롭
+  if (battle.kind === 'normal' && rng.chance(0.4)) result.items.push(randomItem(rng));
+  if (battle.kind === 'elite') {
+    result.items.push(randomItem(rng));
+    result.relicChoices = relicChoices(run, ['common', 'uncommon'], 3);
+  }
+  if (battle.kind === 'boss') {
+    result.relicChoices = relicChoices(run, ['boss'], 3);
+    if (!result.relicChoices.length) result.relicChoices = relicChoices(run, ['uncommon', 'common'], 3);
+  }
+  for (const it of result.items) run.items[it] = (run.items[it] || 0) + 1;
+
+  // 친구가 된 몬무스
+  for (const e of battle.befriended) {
+    if (!run.stats.befriended.includes(e.species)) run.stats.befriended.push(e.species);
+    result.recruits.push(makeRecruit(run, e.species, Math.max(e.level, partyLevel(run) - 1)));
+  }
+  return result;
+}
+
+function randomItem(rng) {
+  return rng.weighted([
+    ['potion', 5], ['feather', 1.5], ['elixir', 1.5], ['bomb', 2], ['smoke', 1], ['perfume', 1.5],
+    ...GIFT_IDS.map((g) => [g, 1]),
+  ]);
+}
+
+function relicChoices(run, rarities, n) {
+  const pool = Object.keys(RELICS).filter((id) => rarities.includes(RELICS[id].rarity) && !run.relics.includes(id));
+  return run.rng.shuffle(pool).slice(0, n);
+}
+
+function gainRelic(run, id) {
+  if (run.relics.includes(id)) return;
+  run.relics.push(id);
+  if (id === 'crown') run.maxParty = 4;
+  for (const u of run.party) refreshStats(u, run.relics);
+}
+
+// ── 동료 영입 ───────────────────────────────────────────────
+function makeRecruit(run, species, level) {
+  const u = createUnit(species, level, 'ally', { relics: run.relics, joinedAt: run.floor });
+  return u;
+}
+
+/** 파티에 합류. replaceUid가 있으면 그 동료와 작별. */
+function joinParty(run, recruit, replaceUid = null) {
+  if (replaceUid != null) {
+    const idx = run.party.findIndex((u) => u.uid === replaceUid);
+    if (idx < 0) throw new Error('작별할 동료가 없습니다');
+    run.party.splice(idx, 1, recruit);
+    return;
+  }
+  if (run.party.length >= run.maxParty) throw new Error('파티가 가득 찼습니다');
+  run.party.push(recruit);
+}
+
+/** 영입을 거절하면 답례로 선물과 골드를 받는다 */
+function declineRecruit(run, recruit) {
+  const gift = SPECIES[recruit.species].gift;
+  run.items[gift] = (run.items[gift] || 0) + 1;
+  const g = addGold(run, 10 + run.act * 5);
+  return { gift, gold: g };
+}
+
+// ── 휴식 ────────────────────────────────────────────────────
+function restHeal(run) {
+  for (const u of run.party) {
+    if (u.fainted) { u.fainted = false; u.hp = Math.round(u.maxHp * 0.4); }
+    else u.hp = Math.min(u.maxHp, u.hp + Math.round(u.maxHp * 0.4));
+  }
+}
+
+function restTrain(run, uid) {
+  const u = run.party.find((x) => x.uid === uid);
+  if (!u) throw new Error('없는 동료');
+  if (u.fainted) { u.fainted = false; u.hp = 1; }
+  u.xp = 0;
+  levelUp(u, run.relics);
+  u.hp = Math.min(u.maxHp, u.hp + Math.round(u.maxHp * 0.15));
+  return u.level;
+}
+
+// ── 보물 ────────────────────────────────────────────────────
+function openTreasure(run) {
+  const rng = run.rng;
+  const loot = { gold: addGold(run, (rng.int(25, 40) + run.act * 10) * goldMul(run)), items: [], relicChoices: relicChoices(run, ['common', 'uncommon'], 2) };
+  const it = randomItem(rng);
+  run.items[it] = (run.items[it] || 0) + 1;
+  loot.items.push(it);
+  return loot;
+}
+
+// ── 상점 ────────────────────────────────────────────────────
+function generateShop(run) {
+  const rng = run.rng;
+  const goods = [];
+  const seen = new Set();
+  const always = ['potion', 'feather'];
+  for (const id of always) { goods.push({ kind: 'item', id, price: ITEMS[id].price + run.act * 3 }); seen.add(id); }
+  while (goods.length < 6) {
+    const id = randomItem(rng);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    goods.push({ kind: 'item', id, price: ITEMS[id].price + run.act * 3 });
+  }
+  for (const id of relicChoices(run, ['common', 'uncommon'], 2)) {
+    goods.push({ kind: 'relic', id, price: RELICS[id].rarity === 'uncommon' ? 105 : 80 });
+  }
+  goods.push({ kind: 'service', id: 'heal', price: 30 + run.act * 10 });
+  return { goods };
+}
+
+function buy(run, shop, index) {
+  const g = shop.goods[index];
+  if (!g || g.sold) throw new Error('품절');
+  if (run.gold < g.price) throw new Error('골드가 부족합니다');
+  run.gold -= g.price;
+  g.sold = g.kind !== 'item' ? true : false;
+  if (g.kind === 'item') run.items[g.id] = (run.items[g.id] || 0) + 1;
+  else if (g.kind === 'relic') gainRelic(run, g.id);
+  else if (g.kind === 'service') {
+    for (const u of run.party) { u.fainted = false; u.hp = u.maxHp; }
+  }
+  return g;
+}
+
+// ── 막 전환 ─────────────────────────────────────────────────
+function nodeRow(run) {
+  return run.nodeId ? run.map.nodes[run.nodeId].row : -1;
+}
+
+function isBossNode(run) {
+  return run.nodeId === 'boss';
+}
+
+/** 보스 처치 후 다음 막으로. 마지막 막이면 엔딩 */
+function advanceAct(run, bossBefriended) {
+  if (run.act >= ACTS) {
+    run.over = bossBefriended ? 'true' : 'win';
+    return { ending: run.over };
+  }
+  run.act++;
+  run.map = generateMap(run.rng, run.act);
+  run.nodeId = null;
+  // 막 사이 휴식: 전원 부활 및 회복
+  for (const u of run.party) { u.fainted = false; u.hp = u.maxHp; }
+  return { act: run.act };
+}
+
+function isPartyWiped(run) {
+  return run.party.every((u) => u.fainted || u.hp <= 0);
+}
+
+
+/** 전투 밖(지도)에서 회복 아이템 사용 */
+function useItemOutside(run, itemId, uid) {
+  if (!(run.items[itemId] > 0)) throw new Error('아이템이 없습니다');
+  const u = run.party.find((x) => x.uid === uid);
+  if (itemId === 'potion') {
+    if (!u || u.fainted) throw new Error('쓰러지지 않은 동료에게만 쓸 수 있습니다');
+    if (u.hp >= u.maxHp) throw new Error('이미 HP가 가득합니다');
+    u.hp = Math.min(u.maxHp, u.hp + Math.max(20, Math.round(u.maxHp * 0.45)));
+  } else if (itemId === 'feather') {
+    if (!u || !u.fainted) throw new Error('쓰러진 동료에게만 쓸 수 있습니다');
+    u.fainted = false;
+    u.hp = Math.round(u.maxHp * 0.5);
+  } else if (itemId === 'elixir') {
+    for (const x of run.party) if (!x.fainted) x.hp = Math.min(x.maxHp, x.hp + Math.round(x.maxHp * 0.25));
+  } else {
+    throw new Error('전투 중에만 쓸 수 있습니다');
+  }
+  run.items[itemId]--;
+  if (run.items[itemId] <= 0) delete run.items[itemId];
+}
+
+return { MAP_ROWS, xpToNext, ACTS, ACT_NAMES, newRun, serializeRun, deserializeRun, availableNodes, partyLevel, generateEncounter, beginBattle, enterNode, addGold, finishBattle, randomItem, relicChoices, gainRelic, makeRecruit, joinParty, declineRecruit, restHeal, restTrain, openTreasure, generateShop, buy, nodeRow, isBossNode, advanceAct, isPartyWiped, useItemOutside };
+})();
+// ── src/core/ai.js ──
+const __m_src_core_ai_js = (() => {
+// 간단한 자동 플레이 AI.
+// 1) 시뮬레이터에서 밸런스 검증용으로, 2) 게임 안의 '자동 전투' 버튼으로 쓰인다.
+const { SKILLS, SPECIES, ITEMS } = __m_src_core_data_js;
+const { alive, livingAllies, livingEnemies, usableSkills, validTargets, canAct, allyAct, keeperTalk, useItem, calcDamage, needsTarget } = __m_src_core_battle_js;
+
+/** 친구로 삼을 적을 고른다 (파티에 없는 종족, 호감도 높은 순). */
+function befriendTarget(b, run, wantFriends) {
+  if (!wantFriends) return null;
+  const enemies = livingEnemies(b);
+  const owned = new Set(run.party.map((u) => u.species));
+  const cands = enemies.filter((e) => !owned.has(e.species) || e.boss);
+  if (!cands.length) return null;
+  return cands.reduce((m, e) => (e.bond / e.bondMax > m.bond / m.bondMax ? e : m));
+}
+
+function lowestHp(units) {
+  return units.reduce((m, u) => (u.hp / u.maxHp < m.hp / m.maxHp ? u : m));
+}
+
+/** 한 아군의 행동을 정한다: { skill, target } */
+function chooseAllyAction(b, run, unit, opts = {}) {
+  const skills = usableSkills(b, unit).map((id) => SKILLS[id]);
+  const allies = livingAllies(b);
+  const enemies = livingEnemies(b);
+  let friendT = opts.friendTarget && alive(opts.friendTarget) ? opts.friendTarget : null;
+  // 보스는 마음의 벽이 있으니 HP를 절반까지 깎은 뒤에 매혹한다
+  if (friendT && friendT.boss && friendT.hp > friendT.maxHp * 0.5) friendT = null;
+  const hurt = lowestHp(allies);
+  let best = null;
+  let bestScore = -Infinity;
+
+  for (const s of skills) {
+    let score = 0;
+    let target = null;
+    switch (s.kind) {
+      case 'heal':
+        if (s.target === 'fallenAlly') { score = 90; target = b.allies.find((u) => u.fainted)?.uid; break; }
+        if (s.target === 'allAllies') {
+          const missing = allies.reduce((a, u) => a + (1 - u.hp / u.maxHp), 0);
+          score = Math.max(0, missing - 0.3 * allies.length) * 90;
+        } else {
+          target = hurt.uid;
+          score = Math.max(0, 1 - hurt.hp / hurt.maxHp - 0.25) * 140;
+          if (s.target === 'self') { target = unit.uid; score = Math.max(0, 1 - unit.hp / unit.maxHp - 0.3) * 110 + (unit.st.poison || unit.st.burn ? 10 : 0); }
+        }
+        break;
+      case 'charm':
+        if (!friendT) { score = -1; break; }
+        target = friendT.uid;
+        score = 40 + s.power;
+        if (s.target === 'allEnemies') score = 30 + s.power * enemies.length * 0.8;
+        break;
+      case 'attack': {
+        const pool = enemies.filter((e) => e !== friendT);
+        if (!pool.length) { score = -5; break; }
+        const est = (e) => calcDamage(unit, e, s, run, null, { noRandom: true }).dmg * s.hits;
+        if (s.target === 'allEnemies') {
+          score = pool.reduce((a, e) => a + Math.min(e.hp, est(e)), 0) * 1.0;
+          if (friendT) score -= est(friendT) * 1.5;
+        } else {
+          // 쓰러뜨릴 수 있는 적을 우선
+          let tBest = null; let tScore = -Infinity;
+          for (const e of pool) {
+            const d = est(e);
+            const sc = Math.min(e.hp, d) + (d >= e.hp ? 15 : 0) + (e.intent && SKILLS[e.intent.skill]?.kind === 'attack' ? 3 : 0);
+            if (sc > tScore) { tScore = sc; tBest = e; }
+          }
+          target = tBest.uid; score = tScore;
+        }
+        score = score * 1.2 + 4;
+        break;
+      }
+      case 'buff': {
+        const tgt = s.target === 'ally' ? hurt : unit;
+        const fresh = s.effects.some((eff) => !(tgt.st[eff.status]));
+        score = fresh ? 14 + (s.target === 'allAllies' ? allies.length * 5 : 0) : 0;
+        if (s.effects.some((e) => e.status === 'taunt') && allies.length > 1) score += 6;
+        target = tgt.uid;
+        break;
+      }
+      case 'debuff':
+        score = 12 + (s.target === 'allEnemies' ? enemies.length * 6 : 4);
+        target = (friendT && enemies.find((e) => e !== friendT)) ? enemies.find((e) => e !== friendT).uid : enemies[0]?.uid;
+        break;
+      default: score = 0;
+    }
+    if (needsTarget(s) && target == null) continue;
+    if (score > bestScore) { bestScore = score; best = { skill: s.id, target }; }
+  }
+  if (!best) best = { skill: skills[0]?.id || 'struggle', target: validTargets(b, unit, SKILLS[skills[0]?.id || 'struggle'])[0]?.uid };
+  return best;
+}
+
+/** 등불지기 행동. 실행하면 events, 아무것도 안 하면 null */
+function keeperAct(b, run, rng, opts = {}) {
+  if (b.keeperUsed) return null;
+  const allies = livingAllies(b);
+  const fallen = b.allies.find((u) => u.fainted);
+  if (fallen && run.items.feather && (allies.length <= 1 || b.kind !== 'normal')) return useItem(b, run, rng, 'feather', fallen.uid);
+  const hurt = allies.length ? lowestHp(allies) : null;
+  if (hurt && hurt.hp / hurt.maxHp < 0.3 && run.items.potion) return useItem(b, run, rng, 'potion', hurt.uid);
+  if (allies.length >= 2 && allies.filter((u) => u.hp / u.maxHp < 0.45).length >= 2 && run.items.elixir) return useItem(b, run, rng, 'elixir');
+  const ft = opts.friendTarget;
+  if (ft && alive(ft) && !(ft.boss && ft.hp > ft.maxHp * 0.5)) {
+    const fav = SPECIES[ft.species].gift;
+    if (run.items[fav] && (!ft.boss || ft.hp <= ft.maxHp * 0.5)) return useItem(b, run, rng, fav, ft.uid);
+    return keeperTalk(b, run, rng, ft.uid);
+  }
+  if (b.kind !== 'normal' && run.items.bomb && livingEnemies(b).length >= 2) return useItem(b, run, rng, 'bomb');
+  return null;
+}
+
+/** 현재 플레이어 턴의 남은 행동을 모두 자동으로 처리 */
+function autoTurn(b, run, rng, opts = {}) {
+  const ev = [];
+  const k = keeperAct(b, run, rng, opts);
+  if (k) ev.push(...k);
+  for (const u of b.allies) {
+    if (b.phase !== 'player') break;
+    if (!canAct(b, u)) continue;
+    const ft = opts.friendTarget && alive(opts.friendTarget) ? opts.friendTarget : null;
+    const act = chooseAllyAction(b, run, u, { ...opts, friendTarget: ft });
+    ev.push(...allyAct(b, run, rng, u.uid, act.skill, act.target));
+  }
+  return ev;
+}
+
+
+return { ITEMS, befriendTarget, chooseAllyAction, keeperAct, autoTurn };
+})();
+// ── src/core/events.js ──
+const __m_src_core_events_js = (() => {
+// 지도 위 ❓ 칸에서 일어나는 이야기들
+const { ITEMS, RELICS, SPECIES } = __m_src_core_data_js;
+const { createUnit, gainXp, xpToNext } = __m_src_core_units_js;
+const { addGold, gainRelic, relicChoices, partyLevel, makeRecruit } = __m_src_core_run_js;
+
+const living = (run) => run.party.filter((u) => !u.fainted);
+const addItem = (run, id, n = 1) => { run.items[id] = (run.items[id] || 0) + n; return `${ITEMS[id].icon} ${ITEMS[id].name} ×${n} 획득`; };
+const hasItem = (run, id) => run.items[id] > 0;
+const takeItem = (run, id) => { run.items[id]--; if (run.items[id] <= 0) delete run.items[id]; };
+
+function healAll(run, frac) {
+  for (const u of living(run)) u.hp = Math.min(u.maxHp, u.hp + Math.round(u.maxHp * frac));
+}
+function hurtAll(run, frac) {
+  for (const u of living(run)) u.hp = Math.max(1, u.hp - Math.round(u.maxHp * frac));
+}
+function reviveAll(run, frac) {
+  for (const u of run.party) if (u.fainted) { u.fainted = false; u.hp = Math.max(1, Math.round(u.maxHp * frac)); }
+}
+function xpAll(run, amount) {
+  const ups = [];
+  for (const u of living(run)) {
+    const before = u.level;
+    if (gainXp(u, amount, run.relics)) ups.push(`${u.name} Lv.${before}→${u.level}`);
+  }
+  return ups.length ? ` (${ups.join(', ')})` : '';
+}
+function recruitOf(run, species) {
+  return makeRecruit(run, species, Math.max(2, partyLevel(run)));
+}
+function eliteOf(run, species, bonus = 2) {
+  return [createUnit(species, partyLevel(run) + bonus, 'enemy', { elite: true })];
+}
+
+const EVENTS = [
+  {
+    id: 'shrine', title: '이끼 낀 신사', art: '⛩️', acts: [1, 2, 3],
+    text: '오래된 신사가 숲속에 숨어 있다. 새전함 위에 작은 여우 석상이 이쪽을 바라본다.',
+    choices: [
+      {
+        label: '두 손 모아 기도한다',
+        run(run) {
+          if (run.rng.chance(0.6)) { healAll(run, 0.35); return { text: '따스한 바람이 불어온다. 모두의 상처가 아물었다. (HP 35% 회복)' }; }
+          hurtAll(run, 0.1);
+          return { text: '석상의 눈이 반짝… 하더니 아무 일도 없었다. 괜히 오싹해서 모두 지쳤다. (HP 10% 감소)' };
+        },
+      },
+      {
+        label: '새전함에 20G를 넣는다', req: (run) => run.gold >= 20,
+        run(run) {
+          run.gold -= 20;
+          const r = relicChoices(run, ['common'], 1)[0];
+          if (!r) return { text: '방울이 딸랑 울렸다. 마음이 편안해진다.' + xpAll(run, 10) };
+          gainRelic(run, r);
+          return { text: `석상의 입에서 무언가 툭 떨어졌다! ${RELICS[r].icon} ${RELICS[r].name} 획득` };
+        },
+      },
+      { label: '조용히 지나간다', run: () => ({ text: '뒤에서 "켄!" 하는 소리가 들린 것 같다.' }) },
+    ],
+  },
+  {
+    id: 'baby_harpy', title: '둥지에서 떨어진 아기 새', art: '🪺', acts: [1, 2],
+    text: '나무 아래에서 깃털 뭉치가 삐약거린다. 아기 하피다! 저 위에서 엄마를 닮은 하피가 걱정스레 내려다본다.',
+    choices: [
+      {
+        label: '나무를 타고 둥지에 올려준다',
+        run(run) {
+          hurtAll(run, 0.12);
+          return { text: '긁히고 넘어졌지만 무사히 돌려보냈다. 엄마 하피가 꿀을 잔뜩 던져준다! ' + addItem(run, 'honey', 2) + ' (HP 12% 감소)' };
+        },
+      },
+      {
+        label: '🍯 꿀단지를 나눠준다', req: (run) => hasItem(run, 'honey'),
+        run(run) {
+          takeItem(run, 'honey');
+          return { text: '꿀을 핥아먹은 아기 새가 쑥 자랐다…? 아니, 언니였다! "고마워! 은혜는 갚을게!"', recruit: recruitOf(run, 'harpy') };
+        },
+      },
+      { label: '못 본 척한다', run: () => ({ text: '삐약 소리가 한참 귓가에 맴돌았다.' }) },
+    ],
+  },
+  {
+    id: 'mushroom', title: '빛나는 버섯 군락', art: '🍄', acts: [1, 2, 3],
+    text: '반딧불처럼 빛나는 버섯들이 둥글게 자라 있다. 빨간 것, 파란 것… 맛있어 보인다.',
+    choices: [
+      {
+        label: '빨간 버섯을 동료에게 먹인다',
+        run(run) {
+          const u = run.rng.pick(living(run));
+          if (!u) return { text: '먹을 동료가 없다…' };
+          if (run.rng.chance(0.55)) {
+            const before = u.level;
+            gainXp(u, xpToNext(u.level) - u.xp, run.relics);
+            return { text: `${u.name}의 몸이 번쩍 빛났다! Lv.${before} → Lv.${u.level}` };
+          }
+          u.hp = Math.max(1, u.hp - Math.round(u.maxHp * 0.3));
+          return { text: `${u.name}의 얼굴이 초록색이 되었다… (HP 30% 감소)` };
+        },
+      },
+      { label: '파란 버섯을 챙긴다', run: (run) => ({ text: '약효가 있어 보인다. ' + addItem(run, 'potion') }) },
+      { label: '그냥 간다', run: () => ({ text: '버섯들이 아쉬운 듯 깜빡거렸다.' }) },
+    ],
+  },
+  {
+    id: 'hotspring', title: '숲속 노천온천', art: '♨️', acts: [1, 2, 3],
+    text: '김이 모락모락 피어오르는 온천을 발견했다. 원숭이 한 마리가 수건을 머리에 얹고 있다.',
+    choices: [
+      { label: '다 같이 몸을 담근다', run(run) { healAll(run, 1); return { text: '으아아… 천국이다. 모두의 HP가 가득 찼다!' }; } },
+      { label: '온천 달걀을 삶아 판다', run(run) { const g = addGold(run, 30 + run.act * 10); return { text: `지나가던 여행자들에게 날개 돋친 듯 팔렸다! ${g}G 획득` }; } },
+    ],
+  },
+  {
+    id: 'moonlake', title: '달빛 호수의 노래', art: '🌊', acts: [1, 2, 3],
+    text: '♪ 고요한 호수 위로 노랫소리가 번진다. 바위 위에 앉은 인어가 눈을 감고 노래하고 있다.',
+    choices: [
+      { label: '노래를 끝까지 듣는다', run(run) { reviveAll(run, 0.3); healAll(run, 0.3); return { text: '노래가 마음속 깊이 스며든다. 쓰러졌던 동료도 눈을 떴다. (부활 + HP 30% 회복)' }; } },
+      {
+        label: '🐚 조개껍질을 선물한다', req: (run) => hasItem(run, 'shell'),
+        run(run) {
+          takeItem(run, 'shell');
+          return { text: '"바다의 소리…! 이걸 들려준 사람은 네가 처음이야." 인어가 물결을 타고 다가왔다.', recruit: recruitOf(run, 'mermaid') };
+        },
+      },
+      { label: '박수를 친다', run: (run) => ({ text: '인어가 깜짝 놀라 물속으로 숨었다. 대신 진주알 몇 개가 떠올랐다. ' + `${addGold(run, 20)}G 획득` }) },
+    ],
+  },
+  {
+    id: 'talking_chest', title: '말하는 보물상자', art: '🧰', acts: [1, 2, 3],
+    text: '길 한복판에 금테 두른 보물상자가 있다. 다가가자 안에서 "…크흡" 하고 숨 참는 소리가 들린다.',
+    choices: [
+      {
+        label: '힘껏 연다',
+        run(run) {
+          if (run.rng.chance(0.5)) {
+            const g = addGold(run, 50 + run.act * 15);
+            return { text: `진짜 보물이었다! ${g}G 획득. …아까 그 소리는 뭐였지?` };
+          }
+          return { text: '"꺄악! 열지 말랬잖아!" 상자가 덥석 물어온다!', battle: { enemies: eliteOf(run, 'mimic', 1), kind: 'elite' } };
+        },
+      },
+      {
+        label: '똑똑, 노크한다',
+        run(run) {
+          return { text: '"…누구세요?" 수줍은 목소리와 함께 뚜껑이 살짝 열리더니, 반짝이는 것을 하나 내밀었다. ' + addItem(run, 'gem') };
+        },
+      },
+      {
+        label: '💎 보석을 넣어준다', req: (run) => hasItem(run, 'gem'),
+        run(run) {
+          takeItem(run, 'gem');
+          return { text: '"이, 이건…! 너 좋은 사람이구나!" 뚜껑이 활짝 열리며 소녀가 튀어나왔다.', recruit: recruitOf(run, 'mimic') };
+        },
+      },
+    ],
+  },
+  {
+    id: 'lost_head', title: '굴러다니는 투구', art: '⛑️', acts: [2, 3],
+    text: '투구를 쓴 머리 하나가 데굴데굴 굴러와 발치에서 멈췄다. "실례한다. 내 몸을… 보지 못했나?"',
+    choices: [
+      {
+        label: '몸을 함께 찾아준다',
+        run(run) {
+          hurtAll(run, 0.15);
+          return { text: '해질녘까지 숲을 헤맨 끝에 머리 없는 갑옷을 찾았다! "이 은혜, 기사의 이름으로 갚겠다!" (HP 15% 감소)', recruit: recruitOf(run, 'dullahan') };
+        },
+      },
+      {
+        label: '푹신해 보인다. 베개로 쓴다',
+        run(run) {
+          healAll(run, 0.25);
+          return { text: '잠시 꿀잠을 잤다. (HP 25% 회복) …눈을 뜨자, 머리를 되찾은 기사가 칼을 뽑고 있다!', battle: { enemies: eliteOf(run, 'dullahan', 1), kind: 'elite' } };
+        },
+      },
+      { label: '길을 알려주고 떠난다', run: (run) => ({ text: '"고맙다! 언젠가 차라도 대접하지." ' + addItem(run, 'tea') }) },
+    ],
+  },
+  {
+    id: 'fox_wedding', title: '여우비 내리는 날', art: '🌦️', acts: [1, 2],
+    text: '해가 쨍쨍한데 비가 내린다. 숲 저편에서 등불을 든 여우들의 혼례 행렬이 지나간다.',
+    choices: [
+      { label: '몰래 구경한다', run: (run) => ({ text: '행렬 끝의 꼬마 여우가 몰래 무언가를 쥐여줬다. ' + addItem(run, 'tofu', 2) }) },
+      { label: '축하의 노래를 부른다', run: (run) => ({ text: '여우들이 꼬리를 흔들며 축복을 내렸다.' + xpAll(run, 12 + run.act * 10) + ' (경험치 획득)' }) },
+      {
+        label: '🥟 유부를 축의금으로 낸다', req: (run) => hasItem(run, 'tofu'),
+        run(run) {
+          takeItem(run, 'tofu');
+          return { text: '"유부라니, 센스 있는 인간이네!" 들러리 여우 한 명이 행렬에서 빠져나왔다.', recruit: recruitOf(run, 'kitsune') };
+        },
+      },
+    ],
+  },
+  {
+    id: 'ruin_altar', title: '고대 유적의 제단', art: '🗿', acts: [2, 3],
+    text: '룬 문자가 새겨진 제단이 희미하게 빛난다. 제단 옆에는 돌로 된 소녀가 무릎을 꿇고 잠들어 있다.',
+    choices: [
+      { label: '힘을 구한다 (HP를 바친다)', run(run) { hurtAll(run, 0.25); return { text: '룬이 붉게 타올랐다! 힘이 솟는다.' + xpAll(run, 20 + run.act * 12) + ' (HP 25% 감소)' }; } },
+      {
+        label: '💐 들꽃을 바친다', req: (run) => hasItem(run, 'flower'),
+        run(run) {
+          takeItem(run, 'flower');
+          return { text: '돌 소녀의 눈에 푸른빛이 켜졌다. "……꽃. ……따뜻함. ……따라간다."', recruit: recruitOf(run, 'golem') };
+        },
+      },
+      {
+        label: '제단을 조사한다',
+        run(run) {
+          const r = relicChoices(run, ['uncommon'], 1)[0];
+          if (r && run.rng.chance(0.5)) { gainRelic(run, r); return { text: `제단 틈새에서 오래된 물건을 찾았다. ${RELICS[r].icon} ${RELICS[r].name} 획득!` }; }
+          return { text: '제단이 웅웅 울리더니 돌 소녀가 눈을 떴다. "……침입자."', battle: { enemies: eliteOf(run, 'golem', 1), kind: 'elite' } };
+        },
+      },
+    ],
+  },
+  {
+    id: 'ghost_story', title: '모닥불 괴담회', art: '🕯️', acts: [2, 3],
+    text: '누군가 모닥불 앞에서 괴담을 들려주고 있다. 그런데 이야기꾼의 발이… 없다?',
+    choices: [
+      { label: '이야기를 듣는다', run: (run) => ({ text: '오싹하지만 재밌었다. 모두 조금 성장한 기분이다.' + xpAll(run, 15 + run.act * 8) }) },
+      {
+        label: '더 무서운 이야기를 해준다',
+        run(run) {
+          if (run.rng.chance(0.55)) return { text: '"히익…! 너, 너 대단하다… 같이 다니면서 이야기 더 해줘!"', recruit: recruitOf(run, 'ghost') };
+          return { text: '이야기꾼이 너무 무서워서 사탕을 떨어뜨리고 사라졌다. ' + addItem(run, 'candy', 2) };
+        },
+      },
+    ],
+  },
+  {
+    id: 'cat_meeting', title: '달밤의 고양이 집회', art: '🐈‍⬛', acts: [1, 2, 3],
+    text: '공터에 고양이들이 동그랗게 모여 있다. 가운데엔 모자를 쓴 고양이 요정이 연설 중이다. "…그래서 인간의 주머니는…"',
+    choices: [
+      {
+        label: '🐟 생선을 바친다', req: (run) => hasItem(run, 'fish'),
+        run(run) {
+          takeItem(run, 'fish');
+          return { text: '"냐! 공물을 바칠 줄 아는 인간이구냥. 특별히 집사로 임명한다!"', recruit: recruitOf(run, 'catsith') };
+        },
+      },
+      {
+        label: '슬쩍 구경한다',
+        run(run) {
+          if (run.rng.chance(0.5)) {
+            const lost = Math.min(run.gold, 25);
+            run.gold -= lost;
+            return { text: `정신 차려보니 지갑이 가벼워졌다. (${lost}G 잃음)` };
+          }
+          return { text: '고양이들이 다가와 부비적댄다. 행운이 따를 것 같다. ' + addItem(run, 'fish') };
+        },
+      },
+      { label: '살금살금 지나간다', run: () => ({ text: '수십 개의 눈동자가 지켜보는 게 느껴졌다.' }) },
+    ],
+  },
+  {
+    id: 'web_bridge', title: '거미줄 흔들다리', art: '🕸️', acts: [1, 2],
+    text: '계곡 위에 거미줄로 엮은 다리가 걸려 있다. 다리 한가운데서 누군가 뜨개질을 하고 있다.',
+    choices: [
+      { label: '그냥 건넌다', run: (run) => ({ text: '"남의 작품을 함부로 밟다니!"', battle: { enemies: eliteOf(run, 'arachne', 0), kind: 'elite' } }) },
+      {
+        label: '🧶 털실을 건넨다', req: (run) => hasItem(run, 'yarn'),
+        run(run) {
+          takeItem(run, 'yarn');
+          return { text: '"와, 이 색 갖고 싶었어! 너 목도리 떠 줄게. 아니, 그냥 같이 갈래!"', recruit: recruitOf(run, 'arachne') };
+        },
+      },
+      { label: '뜨개질 구경을 한다', run: (run) => ({ text: '한참 구경하다 보니 손재주를 배운 것 같다.' + xpAll(run, 10 + run.act * 6) }) },
+    ],
+  },
+  {
+    id: 'shooting_star', title: '별똥별', art: '🌠', acts: [1, 2, 3],
+    text: '하늘을 가르며 별똥별이 떨어진다. 소원을 하나 빌 수 있을 것 같다.',
+    choices: [
+      { label: '부자가 되게 해주세요', run: (run) => ({ text: `발밑에서 반짝이는 것이 굴러왔다. ${addGold(run, 45 + run.act * 15)}G 획득` }) },
+      { label: '모두 건강하게 해주세요', run(run) { reviveAll(run, 1); healAll(run, 1); return { text: '따스한 별빛이 모두를 감쌌다. 완전히 회복했다!' }; } },
+      { label: '친구가 많이 생기게 해주세요', run: (run) => ({ text: '주머니가 묵직해졌다. ' + addItem(run, 'perfume') + ', ' + addItem(run, run.rng.pick(['candy', 'honey', 'flower', 'fish', 'gem'])) }) },
+    ],
+  },
+  {
+    id: 'unicorn_spring', title: '유니콘의 샘', art: '🦄', acts: [2, 3],
+    text: '맑은 샘가에 하얀 뿔을 가진 소녀가 상처 입은 새를 돌보고 있다.',
+    choices: [
+      {
+        label: '함께 새를 돌본다',
+        run(run) {
+          if (run.party.some((u) => u.species === 'unicorn')) return { text: '"고마워요." 소녀가 미소 지었다.' + xpAll(run, 15) };
+          return { text: '"…당신, 마음이 맑은 사람이군요. 저도 함께 가도 될까요?"', recruit: recruitOf(run, 'unicorn') };
+        },
+      },
+      { label: '샘물을 마신다', run(run) { healAll(run, 0.5); return { text: '몸 속까지 맑아지는 기분이다. (HP 50% 회복)' }; } },
+    ],
+  },
+  {
+    id: 'salamander_forge', title: '도마뱀 대장간', art: '⚒️', acts: [2],
+    text: '용암이 흐르는 바위틈에서 살라만더가 망치질을 하고 있다. "어이! 거기 너! 풀무질 좀 도와줄래?"',
+    choices: [
+      {
+        label: '풀무질을 돕는다',
+        run(run) {
+          hurtAll(run, 0.1);
+          if (!run.relics.includes('whetstone')) { gainRelic(run, 'whetstone'); return { text: '땀을 뻘뻘 흘렸지만 보답으로 숫돌을 받았다! 🪨 숫돌 획득 (HP 10% 감소)' }; }
+          return { text: `땀을 뻘뻘 흘렸다. 품삯으로 ${addGold(run, 40)}G를 받았다. (HP 10% 감소)` };
+        },
+      },
+      {
+        label: '🍯 꿀단지로 응원한다', req: (run) => hasItem(run, 'honey'),
+        run(run) {
+          takeItem(run, 'honey');
+          return { text: '"꿀!! 너 최고야! 결심했어, 너랑 모험 떠날래!"', recruit: recruitOf(run, 'salamander') };
+        },
+      },
+      { label: '덥다. 떠난다', run: () => ({ text: '"쳇, 근성 없긴!"' }) },
+    ],
+  },
+];
+
+function pickEvent(run) {
+  const seen = run.seenEvents || (run.seenEvents = []);
+  const pool = EVENTS.filter((e) => e.acts.includes(run.act) && !seen.includes(e.id));
+  const list = pool.length ? pool : EVENTS.filter((e) => e.acts.includes(run.act));
+  const ev = run.rng.pick(list);
+  seen.push(ev.id);
+  return ev;
+}
+
+function eventById(id) {
+  return EVENTS.find((e) => e.id === id);
+}
+
+function speciesName(id) { return SPECIES[id].name; }
+
+return { EVENTS, pickEvent, eventById, speciesName };
+})();
+// ── src/ui/portrait.js ──
+const __m_src_ui_portrait_js = (() => {
+// 몬무스 초상화를 SVG로 그린다. 외부 이미지 없이 모두 코드로 생성.
+// expression: normal | happy | hurt | shy | love | sleep | angry
+const { SPECIES } = __m_src_core_data_js;
+
+// ── 색 도우미 ───────────────────────────────────────────────
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+}
+function rgbToHex([r, g, b]) {
+  return '#' + [r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+}
+function shade(hex, amt) {
+  // amt < 0 어둡게, > 0 밝게
+  const c = hexToRgb(hex);
+  return rgbToHex(c.map((v) => (amt < 0 ? v * (1 + amt) : v + (255 - v) * amt)));
+}
+
+const MIRROR = 'transform="translate(120,0) scale(-1,1)"';
+const both = (svg) => `<g>${svg}</g><g ${MIRROR}>${svg}</g>`;
+
+// ── 머리카락 ────────────────────────────────────────────────
+function hairBack(style, c, d) {
+  const st = `fill="${c}" stroke="${d}" stroke-width="1.2" stroke-linejoin="round"`;
+  switch (style) {
+    case 'long':
+      return `<path ${st} d="M35 50 C28 72 28 96 31 112 L89 112 C92 96 92 72 85 50 Z"/>`;
+    case 'wavy':
+      return `<path ${st} d="M35 50 C26 66 32 76 27 88 C23 98 31 104 28 114 L92 114 C89 104 97 98 93 88 C88 76 94 66 85 50 Z"/>`;
+    case 'twin':
+      return both(`<path ${st} d="M40 44 C22 42 12 64 15 92 C16 102 22 108 24 106 C22 92 28 72 42 58 Z"/>`) +
+        both(`<circle cx="40" cy="44" r="3.4" fill="#ff5c8a" stroke="${shade('#ff5c8a', -0.3)}" stroke-width="1"/>`);
+    case 'pony':
+      return `<path ${st} d="M78 38 C102 36 108 66 98 96 C96 80 92 66 80 56 Z"/><path ${st} d="M36 52 C33 64 35 74 38 78 L82 78 C85 74 87 64 84 52 Z"/>` +
+        `<ellipse cx="81" cy="40" rx="4" ry="3" fill="#5b6ee1"/>`;
+    case 'bob':
+    case 'drip':
+      return `<path ${st} d="M35 52 C29 70 32 84 38 88 L82 88 C88 84 91 70 85 52 Z"/>`;
+    case 'messy':
+      return `<path ${st} d="M35 52 C30 66 30 78 34 86 L40 80 L44 88 L76 88 L80 80 L86 86 C90 78 90 66 85 52 Z"/>`;
+    default: // short
+      return `<path ${st} d="M36 52 C33 64 35 74 38 78 L82 78 C85 74 87 64 84 52 Z"/>`;
+  }
+}
+
+function hairFront(style, c, d) {
+  const st = `fill="${c}" stroke="${d}" stroke-width="1.2" stroke-linejoin="round"`;
+  let fringe;
+  if (style === 'messy') {
+    fringe = 'M34 64 C30 38 44 28 60 29 C76 28 90 38 86 64 L83 52 L79 58 L76 46 L71 54 L67 44 L61 53 L56 43 L51 54 L47 45 L43 57 L39 50 L37 60 Z';
+  } else if (style === 'bob' || style === 'drip') {
+    fringe = 'M34 68 C30 38 44 29 60 30 C76 29 90 38 86 68 C84 58 82 52 80 48 C74 50 68 50 64 46 C60 50 52 51 46 48 C40 52 37 60 34 68 Z';
+  } else if (style === 'pony') {
+    fringe = 'M35 62 C32 38 46 30 60 30 C74 30 88 38 85 62 L82 52 C78 46 70 44 64 46 L58 50 L56 44 C48 44 42 48 38 54 Z';
+  } else {
+    fringe = 'M34 66 C31 38 45 29 60 30 C75 29 89 38 86 66 L83 56 C81 50 77 47 73 47 L70 53 L66 46 L61 52 L56 46 L51 53 L48 47 C43 47 39 51 37 57 Z';
+  }
+  let out = `<path ${st} d="${fringe}"/>`;
+  // 옆머리
+  if (style === 'long' || style === 'wavy' || style === 'twin' || style === 'pony') {
+    const side = style === 'wavy'
+      ? `<path ${st} d="M36 56 C32 70 37 80 33 92 C31 98 33 104 30 108 L37 106 C40 96 38 88 41 78 C43 70 41 62 40 58 Z"/>`
+      : `<path ${st} d="M36 56 C33 72 34 90 31 104 L38 101 C40 90 40 74 40 59 Z"/>`;
+    out = both(side) + out;
+  }
+  if (style === 'drip') {
+    out += `<path fill="${c}" opacity="0.9" d="M38 64 C37 70 36 74 38 78 C40 74 40 70 39 64 Z"/><path fill="${c}" opacity="0.9" d="M82 62 C83 70 84 76 82 80 C80 76 80 70 81 62 Z"/>`;
+  }
+  // 머리 광택
+  out += `<path d="M46 36 C52 33 60 32 66 33" stroke="${shade(c, 0.45)}" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7"/>`;
+  return out;
+}
+
+// ── 얼굴 ────────────────────────────────────────────────────
+function eyes(expr, eye, look) {
+  const lash = '#2a1f2d';
+  const L = 50, R = 70, Y = 63;
+  const slit = look.features.includes('slitEyes');
+  const one = (x, mirror) => {
+    switch (expr) {
+      case 'happy':
+        return `<path d="M${x - 4.5} ${Y + 1} Q${x} ${Y - 5} ${x + 4.5} ${Y + 1}" stroke="${lash}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+      case 'sleep':
+        return `<path d="M${x - 4.5} ${Y} Q${x} ${Y + 3.5} ${x + 4.5} ${Y}" stroke="${lash}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+      case 'hurt': {
+        const s = mirror ? -1 : 1;
+        return `<path d="M${x - 4 * s} ${Y - 3.5} L${x + 3 * s} ${Y} L${x - 4 * s} ${Y + 3.5}" stroke="${lash}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+      }
+      default: {
+        const dx = expr === 'shy' ? 1.6 : 0;
+        const pupil = slit
+          ? `<ellipse cx="${x + dx}" cy="${Y + 0.6}" rx="0.9" ry="3.6" fill="#140b10"/>`
+          : `<ellipse cx="${x + dx}" cy="${Y + 0.8}" rx="2.2" ry="3" fill="${shade(eye, -0.55)}"/>`;
+        const hl = expr === 'love'
+          ? `<path d="M${x + dx} ${Y + 2.6} l-2.6 -2.6 a1.5 1.5 0 0 1 2.6 -1.6 a1.5 1.5 0 0 1 2.6 1.6 Z" fill="#ff5c8a"/>`
+          : `<circle cx="${x - 1.4 + dx}" cy="${Y - 1.8}" r="1.5" fill="#fff"/><circle cx="${x + 1.6 + dx}" cy="${Y + 2.4}" r="0.7" fill="#fff" opacity="0.8"/>`;
+        return `<ellipse cx="${x}" cy="${Y}" rx="4.3" ry="5.6" fill="#fff"/>` +
+          `<ellipse cx="${x + dx}" cy="${Y + 0.3}" rx="3.7" ry="5.1" fill="${eye}"/>` +
+          `<ellipse cx="${x + dx}" cy="${Y + 2.4}" rx="2.6" ry="2.2" fill="${shade(eye, 0.35)}" opacity="0.6"/>` +
+          pupil + hl +
+          `<path d="M${x - 5} ${Y - 4} Q${x} ${Y - 7.6} ${x + 5} ${Y - 4.2}" stroke="${lash}" stroke-width="2.1" fill="none" stroke-linecap="round"/>`;
+      }
+    }
+  };
+  let out = one(L, false) + one(R, true);
+  if (expr === 'angry') {
+    out += `<path d="M45 55 L54 57.5" stroke="${lash}" stroke-width="1.8" stroke-linecap="round"/><path d="M75 55 L66 57.5" stroke="${lash}" stroke-width="1.8" stroke-linecap="round"/>`;
+  } else if (expr === 'hurt' || expr === 'shy') {
+    out += `<path d="M46 55.5 L54 54.5" stroke="${lash}" stroke-width="1.4" stroke-linecap="round" opacity="0.7"/><path d="M74 55.5 L66 54.5" stroke="${lash}" stroke-width="1.4" stroke-linecap="round" opacity="0.7"/>`;
+  }
+  return out;
+}
+
+function mouth(expr, look) {
+  const c = '#7a2f3a';
+  let m;
+  switch (expr) {
+    case 'happy':
+    case 'love':
+      m = `<path d="M55.5 73.5 Q60 80 64.5 73.5 Z" fill="${c}"/><path d="M57.5 76.5 Q60 78.5 62.5 76.5" fill="#ff8fa3"/>`;
+      break;
+    case 'hurt':
+      m = `<path d="M55 76 Q57 74 59 76 Q61 78 63 76 Q64.5 74.5 65.5 76" stroke="${c}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+      break;
+    case 'shy':
+      m = `<path d="M58 75.5 Q60 74.5 62 75.5" stroke="${c}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+      break;
+    case 'sleep':
+      m = `<ellipse cx="60" cy="76" rx="1.6" ry="1.2" fill="${c}"/>`;
+      break;
+    case 'angry':
+      m = `<path d="M56 76.5 Q60 73.5 64 76.5" stroke="${c}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`;
+      break;
+    default:
+      m = `<path d="M56.5 74.5 Q60 77.8 63.5 74.5" stroke="${c}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`;
+  }
+  if (look.features.includes('fangs') && expr !== 'sleep') {
+    m += `<path d="M57.5 75.2 L58.5 78 L59.5 75.6 Z M60.5 75.6 L61.5 78 L62.5 75.2 Z" fill="#fff"/>`;
+  }
+  return m;
+}
+
+function blush(expr) {
+  const strong = expr === 'shy' || expr === 'love';
+  const op = strong ? 0.75 : expr === 'happy' ? 0.5 : 0.32;
+  let out = `<ellipse cx="44.5" cy="71" rx="4.6" ry="2.3" fill="#ff7a9a" opacity="${op}"/><ellipse cx="75.5" cy="71" rx="4.6" ry="2.3" fill="#ff7a9a" opacity="${op}"/>`;
+  if (strong) {
+    out += both(`<path d="M41.5 69.5 L40.5 72.5 M44.5 69.5 L43.5 72.5 M47.5 69.5 L46.5 72.5" stroke="#e0476f" stroke-width="0.9" stroke-linecap="round"/>`);
+  }
+  if (expr === 'hurt') {
+    out += `<path d="M84 50 C86 54 88 57 86 59 C84 61 81 59 82 56 C82.5 54 83.5 52 84 50 Z" fill="#8fd3ff" stroke="#4fa8ff" stroke-width="0.8"/>`;
+  }
+  return out;
+}
+
+// ── 종족 특징 ───────────────────────────────────────────────
+const BEHIND = {
+  wings: (lk) => both(`<path fill="${lk.hair}" stroke="${shade(lk.hair, -0.35)}" stroke-width="1.2" stroke-linejoin="round" d="M34 98 C14 94 2 74 4 52 C10 62 14 66 18 66 C10 58 8 46 12 38 C18 52 22 58 26 60 C22 50 22 42 26 36 C30 54 36 72 42 92 Z"/><path d="M14 56 C20 66 28 76 36 88 M22 50 C26 62 32 74 38 86" stroke="${shade(lk.hair, -0.25)}" stroke-width="1" fill="none"/>`),
+  dragonWings: () => both(`<path fill="#8d1b26" stroke="#4a0a12" stroke-width="1.3" stroke-linejoin="round" d="M36 96 L6 40 L10 62 L16 52 L19 70 L25 60 L27 80 L33 74 Z"/><path d="M6 40 L33 74 M16 52 L30 80 M25 60 L33 84" stroke="#4a0a12" stroke-width="1" fill="none"/>`),
+  foxTails: (lk) => {
+    const t = (rot) => `<g transform="rotate(${rot} 60 122)"><path fill="${lk.hair}" stroke="${shade(lk.hair, -0.35)}" stroke-width="1.2" d="M60 122 C38 104 40 50 60 24 C80 50 82 104 60 122 Z"/><path fill="#fff6e8" stroke="${shade(lk.hair, -0.2)}" stroke-width="0.8" d="M60 24 C53 33 51 40 52 45 C56 42 64 42 68 45 C69 40 67 33 60 24 Z"/></g>`;
+    return t(-54) + t(54) + t(-30) + t(30);
+  },
+  catTail: (lk) => `<path d="M88 112 C104 104 108 86 100 76 C96 70 98 62 104 62" stroke="${lk.hair}" stroke-width="7" fill="none" stroke-linecap="round"/>`,
+  spiderLegs: () => both(`<path d="M38 96 L16 74 L6 92 M40 100 L12 92 L4 112 M38 92 L22 62 L8 68" stroke="#3a2850" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="74" r="2" fill="#c03080"/><circle cx="12" cy="92" r="2" fill="#c03080"/><circle cx="22" cy="62" r="2" fill="#c03080"/>`),
+  vines: () => both(`<path d="M30 118 C26 100 34 92 28 80 C24 72 28 64 34 62" stroke="#2e6b34" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M28 80 C22 78 20 74 22 70 C26 72 28 76 28 80 Z M30 98 C24 98 22 94 23 90 C27 92 30 94 30 98 Z" fill="#5cc36a"/>`),
+  moon: () => `<path d="M18 30 A18 18 0 1 0 40 8 A14 14 0 1 1 18 30 Z" fill="#fff3b0" opacity="0.85"/>`,
+  chest: () => `<path d="M22 44 L98 44 L102 18 C80 8 40 8 18 18 Z" fill="#9c6b30" stroke="#5c3a12" stroke-width="1.5"/><path d="M22 44 L98 44" stroke="#f5c542" stroke-width="3"/><path d="M28 44 L31 50 L34 44 L37 50 L40 44 M80 44 L83 50 L86 44 L89 50 L92 44" fill="#fff" stroke="#ddd" stroke-width="0.6"/><path d="M18 18 C40 8 80 8 102 18" stroke="#f5c542" stroke-width="2.5" fill="none"/>`,
+};
+
+const FRONT_BODY = {
+  armor: () => both(`<path d="M24 104 C24 94 32 90 42 92 C44 98 42 104 38 108 Z" fill="#8a8fa8" stroke="#3c3f58" stroke-width="1.3"/><circle cx="31" cy="99" r="1.3" fill="#e8e8f0"/>`) + `<path d="M50 92 L60 104 L70 92" stroke="#c9a227" stroke-width="2" fill="none"/>`,
+  scales: () => both(`<path d="M30 104 q3 -3 6 0 q3 -3 6 0 M33 109 q3 -3 6 0 q3 -3 6 0" stroke="#2f8f7a" stroke-width="1.2" fill="none"/>`),
+  chest: () => `<rect x="14" y="100" width="92" height="22" rx="3" fill="#9c6b30" stroke="#5c3a12" stroke-width="1.5"/><path d="M14 106 L106 106" stroke="#f5c542" stroke-width="2.5"/><rect x="55" y="103" width="10" height="9" rx="2" fill="#f5c542" stroke="#a87b16" stroke-width="1"/><circle cx="60" cy="108" r="1.3" fill="#5c3a12"/>`,
+  pearl: () => `<path d="M46 96 Q60 104 74 96" stroke="#fff" stroke-width="0" fill="none"/>` + [48, 54, 60, 66, 72].map((x, i) => `<circle cx="${x}" cy="${96 + (i === 2 ? 3 : i % 2 ? 2 : 0)}" r="2" fill="#fdfcf7" stroke="#d9cfe0" stroke-width="0.6"/>`).join(''),
+  runes: () => `<path d="M40 104 L46 98 L52 104 M68 104 L74 98 L80 104" stroke="#4dd0e1" stroke-width="1.6" fill="none" opacity="0.9"/>`,
+};
+
+const HEAD_TOP = {
+  foxEars: (lk) => both(`<path d="M40 44 L33 15 L54 33 Z" fill="${lk.hair}" stroke="${shade(lk.hair, -0.35)}" stroke-width="1.2" stroke-linejoin="round"/><path d="M41 40 L36.5 22 L50 33.5 Z" fill="#fff1e6"/>`),
+  catEars: (lk) => both(`<path d="M39 42 L36 20 L53 33 Z" fill="${lk.hair}" stroke="${shade(lk.hair, -0.4)}" stroke-width="1.2" stroke-linejoin="round"/><path d="M40.5 38 L38.5 25.5 L48.5 33.5 Z" fill="#ffb3c6"/>`),
+  horseEars: (lk) => both(`<path d="M40 40 C32 32 32 24 34 20 C40 24 45 30 46 36 Z" fill="${lk.skin}" stroke="${shade(lk.hair, -0.25)}" stroke-width="1.1"/><path d="M39 36 C36 31 35.5 27 36 24 C39 27 42 30 43 34 Z" fill="#ffc8d8"/>`),
+  horn: () => `<path d="M56.5 34 L60 4 L63.5 34 Z" fill="#ffe08a" stroke="#c99a2e" stroke-width="1.1" stroke-linejoin="round"/><path d="M57.5 28 L62.5 26 M58.3 21 L61.9 19.5 M59 14 L61.2 13" stroke="#c99a2e" stroke-width="1.1"/>`,
+  smallHorns: () => both(`<path d="M45 37 L41 25 L51 33 Z" fill="#ffcf9e" stroke="#b5651d" stroke-width="1.1" stroke-linejoin="round"/>`),
+  dragonHorns: () => both(`<path d="M45 36 C36 30 32 18 38 8 C38 18 42 24 51 31 Z" fill="#3a2a2a" stroke="#1b1010" stroke-width="1.1" stroke-linejoin="round"/>`),
+  sprout: () => `<path d="M60 31 L60 20" stroke="#4c9a3a" stroke-width="2" stroke-linecap="round"/><path d="M60 22 C52 12 43 15 45 22 C50 25 56 25 60 22 Z" fill="#6fcf5a" stroke="#3d7a2c" stroke-width="1"/><path d="M60 20 C66 9 77 11 75 18 C71 22 65 22 60 20 Z" fill="#8be06f" stroke="#3d7a2c" stroke-width="1"/>`,
+  leafCrown: () => [30, 42, 54, 66, 78, 90].map((x, i) => {
+    const y = 34 - Math.sin((i / 5) * Math.PI) * 6;
+    return `<path d="M${x} ${y} C${x - 5} ${y - 6} ${x - 2} ${y - 12} ${x} ${y - 14} C${x + 2} ${y - 12} ${x + 5} ${y - 6} ${x} ${y} Z" fill="${i % 2 ? '#a1d65b' : '#5cc36a'}" stroke="#2e6b34" stroke-width="1"/>`;
+  }).join('') + `<circle cx="60" cy="24" r="3" fill="#ff8fb8" stroke="#c0396b" stroke-width="0.8"/>`,
+  tiara: () => `<path d="M48 35 L51 28 L55 33 L60 25 L65 33 L69 28 L72 35 Z" fill="#ffd166" stroke="#b5891a" stroke-width="1"/><circle cx="60" cy="30" r="1.8" fill="#e63946"/>`,
+  witchHat: () => `<ellipse cx="60" cy="34" rx="36" ry="7.5" fill="#2b1747" stroke="#120724" stroke-width="1.3"/><path d="M40 33 C44 20 52 10 62 2 C66 6 74 6 80 12 C74 12 70 14 68 18 C74 22 78 28 80 33 Z" fill="#2b1747" stroke="#120724" stroke-width="1.3" stroke-linejoin="round"/><path d="M41 31 C54 34 66 34 79 31" stroke="#e63946" stroke-width="3.5" fill="none"/><path d="M67 22 l1.4 3 3.2 0.4 -2.4 2.2 0.7 3.2 -2.9 -1.6 -2.9 1.6 0.7 -3.2 -2.4 -2.2 3.2 -0.4 Z" fill="#ffe66d"/>`,
+  feather: () => `<g transform="rotate(30 80 36)"><ellipse cx="80" cy="26" rx="4" ry="11" fill="#f2b84b" stroke="#a8741c" stroke-width="1"/><path d="M80 15 L80 38" stroke="#a8741c" stroke-width="1"/></g>`,
+  flameHair: () => `<path d="M48 31 C46 22 50 18 52 12 C54 20 56 22 56 28 C58 22 60 18 62 10 C64 18 66 24 66 29 C68 24 70 22 72 16 C74 24 74 28 72 32 Z" fill="#ffb000" stroke="#ff4d2e" stroke-width="1.2" stroke-linejoin="round"/>`,
+  pearl: () => `<circle cx="81" cy="42" r="3.2" fill="#fdfcf7" stroke="#d9cfe0" stroke-width="0.8"/><circle cx="80" cy="41" r="1" fill="#fff"/><path d="M84 40 C88 38 90 42 88 44" stroke="#48cae4" stroke-width="1.5" fill="none"/>`,
+  wisp: () => `<path d="M100 34 C94 30 96 22 100 14 C101 20 106 22 106 28 C106 33 103 35 100 34 Z" fill="#9db4ff" opacity="0.85"/><circle cx="100.5" cy="29" r="2.2" fill="#e8eeff"/>`,
+};
+
+const FACE_EXTRA = {
+  spiderEyes: () => [[53, 48.5], [57, 46.5], [63, 46.5], [67, 48.5]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.25" fill="#c03080"/><circle cx="${x - 0.35}" cy="${y - 0.4}" r="0.4" fill="#fff"/>`).join(''),
+  scales: () => both(`<path d="M37.5 72 q1.6 -1.6 3.2 0 M38 75.5 q1.6 -1.6 3.2 0" stroke="#2f8f7a" stroke-width="0.9" fill="none"/>`),
+  stone: () => `<path d="M40 66 L44 70 L42 74 M80 62 L77 66 L79 70" stroke="#6d6457" stroke-width="1" fill="none"/>`,
+  runes: () => both(`<path d="M41 74 L43.5 70 L46 74" stroke="#4dd0e1" stroke-width="1.2" fill="none"/>`),
+  finEars: () => both(`<path d="M37.5 58 L25 50 L28.5 60 L23 68 L37.5 66 Z" fill="#7fd8e8" stroke="#2a9d8f" stroke-width="1" stroke-linejoin="round" opacity="0.95"/>`),
+  slime: () => `<ellipse cx="48" cy="44" rx="6" ry="3.5" fill="#fff" opacity="0.45" transform="rotate(-20 48 44)"/>`,
+};
+
+// ── 조립 ────────────────────────────────────────────────────
+function portraitSVG(speciesId, expr = 'normal', opts = {}) {
+  const sp = SPECIES[speciesId];
+  const lk = sp.look;
+  const f = new Set(lk.features);
+  const hairC = lk.hair;
+  const hairD = shade(lk.hair, -0.35);
+  const skin = lk.skin;
+  const skinD = shade(skin, -0.2);
+  const skinAlpha = lk.skinAlpha ?? 1;
+  const outfit = lk.outfit;
+  const headLift = f.has('floatingHead') ? -7 : 0;
+
+  let back = '';
+  for (const k of ['moon', 'chest', 'wings', 'dragonWings', 'foxTails', 'catTail', 'spiderLegs', 'vines']) {
+    if (f.has(k) && BEHIND[k]) back += BEHIND[k](lk);
+  }
+
+  // 몸
+  let body;
+  if (f.has('ghost')) {
+    body = `<path d="M30 120 C30 104 34 94 46 90 L74 90 C86 94 90 104 90 120 C86 114 82 118 78 113 C74 119 70 114 66 119 C62 114 58 119 54 114 C50 119 46 114 42 119 C38 113 34 118 30 120 Z" fill="${outfit}" stroke="${shade(outfit, -0.3)}" stroke-width="1.2" opacity="0.85"/>`;
+  } else if (f.has('slime')) {
+    body = `<path d="M22 120 C22 100 36 90 60 89 C84 90 98 100 98 120 Z" fill="${outfit}" stroke="${shade(outfit, -0.3)}" stroke-width="1.2" opacity="0.92"/>` +
+      `<path d="M32 104 C32 110 30 114 33 116 C36 114 35 110 34 104 Z M86 100 C86 108 88 112 85 114 C82 112 83 106 84 100 Z" fill="${skin}" opacity="0.8"/>`;
+  } else {
+    body = `<path d="M18 120 C18 100 32 91 60 90 C88 91 102 100 102 120 Z" fill="${outfit}" stroke="${shade(outfit, -0.35)}" stroke-width="1.2"/>` +
+      `<path d="M48 91 L60 101 L72 91" fill="none" stroke="${shade(outfit, -0.25)}" stroke-width="1.5"/>`;
+  }
+  const neck = f.has('floatingHead')
+    ? `<rect x="54" y="82" width="12" height="11" fill="${skin}" stroke="${skinD}" stroke-width="1"/><ellipse cx="60" cy="82" rx="7" ry="2.2" fill="#9fb3ff" opacity="0.9"/><ellipse cx="60" cy="${80 + headLift}" rx="10" ry="3" fill="#b9c6ff" opacity="0.35"/>`
+    : `<rect x="54" y="80" width="12" height="13" fill="${skin}" fill-opacity="${skinAlpha}" stroke="${skinD}" stroke-width="1"/>`;
+
+  let bodyFront = '';
+  for (const k of Object.keys(FRONT_BODY)) if (f.has(k)) bodyFront += FRONT_BODY[k](lk);
+
+  const head = `<ellipse cx="60" cy="60" rx="23.5" ry="24.5" fill="${skin}" fill-opacity="${skinAlpha}" stroke="${skinD}" stroke-width="1.2"/>`;
+
+  let faceExtra = '';
+  for (const k of Object.keys(FACE_EXTRA)) if (f.has(k)) faceExtra += FACE_EXTRA[k](lk);
+  let top = '';
+  for (const k of Object.keys(HEAD_TOP)) if (f.has(k)) top += HEAD_TOP[k](lk);
+
+  const z = expr === 'sleep' ? `<text x="88" y="40" font-size="12" font-weight="700" fill="#7b8cff" font-family="sans-serif">z</text><text x="96" y="30" font-size="9" font-weight="700" fill="#7b8cff" font-family="sans-serif">z</text>` : '';
+  const heart = expr === 'love' ? `<path d="M96 30 l-5 -5 a3 3 0 0 1 5 -3.2 a3 3 0 0 1 5 3.2 Z" fill="#ff5c8a"/>` : '';
+
+  const backHair = `<g transform="translate(0 ${headLift})">${hairBack(lk.hairStyle, hairC, hairD)}</g>`;
+  const headGroup = `<g transform="translate(0 ${headLift})">${head}${eyes(expr, lk.eye, lk)}${blush(expr)}${mouth(expr, lk)}${hairFront(lk.hairStyle, hairC, hairD)}${faceExtra}${top}${z}${heart}</g>`;
+
+  const id = opts.id ? ` id="${opts.id}"` : '';
+  const cls = opts.className ? ` class="${opts.className}"` : '';
+  return `<svg${id}${cls} viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${sp.name} ${sp.given}">${back}${backHair}${body}${neck}${bodyFront}${headGroup}</svg>`;
+}
+
+/** 전투 상황에 맞는 표정 */
+function expressionFor(unit) {
+  if (unit.fainted) return 'hurt';
+  if (unit.st?.sleep) return 'sleep';
+  if (unit.gone === 'friend') return 'love';
+  if (unit.gone === 'fled') return 'hurt';
+  if (unit.side === 'enemy') {
+    const br = unit.bond / unit.bondMax;
+    if (br >= 0.85) return 'love';
+    if (br >= 0.55) return 'shy';
+    if (unit.hp / unit.maxHp < 0.3) return 'hurt';
+    if (unit.boss && br < 0.2) return 'angry';
+    return 'normal';
+  }
+  if (unit.hp / unit.maxHp < 0.3) return 'hurt';
+  return 'normal';
+}
+
+return { shade, portraitSVG, expressionFor };
+})();
+// ── src/ui/store.js ──
+const __m_src_ui_store_js = (() => {
+// localStorage 래퍼. 사파리 사생활 모드 등에서 실패해도 게임은 계속된다.
+const META_KEY = 'monmusu.meta.v1';
+const RUN_KEY = 'monmusu.run.v1';
+
+function read(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function write(key, val) {
+  try { if (val == null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch { /* 무시 */ }
+}
+
+function loadMeta() {
+  const def = { seen: [], friends: [], runs: 0, wins: 0, trueEnds: 0, best: 0, sound: true, speed: 1 };
+  try { return { ...def, ...(JSON.parse(read(META_KEY)) || {}) }; } catch { return def; }
+}
+function saveMeta(meta) { write(META_KEY, JSON.stringify(meta)); }
+
+function loadRunJson() { return read(RUN_KEY); }
+function saveRunJson(json) { write(RUN_KEY, json); }
+function clearRun() { write(RUN_KEY, null); }
+
+return { loadMeta, saveMeta, loadRunJson, saveRunJson, clearRun };
+})();
+// ── src/ui/audio.js ──
+const __m_src_ui_audio_js = (() => {
+// 아주 작은 WebAudio 효과음. 외부 파일 없음.
+let ctx = null;
+let enabled = true;
+function setSound(on) { enabled = on; }
+
+function ac() {
+  if (!ctx) {
+    const C = globalThis.AudioContext || globalThis.webkitAudioContext;
+    if (!C) return null;
+    ctx = new C();
+  }
+  if (ctx.state === 'suspended') ctx.resume();
+  return ctx;
+}
+
+function tone(freq, dur = 0.08, type = 'sine', vol = 0.08, when = 0, slide = 0) {
+  if (!enabled) return;
+  const a = ac();
+  if (!a) return;
+  const t = a.currentTime + when;
+  const o = a.createOscillator();
+  const g = a.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(a.destination);
+  o.start(t);
+  o.stop(t + dur + 0.02);
+}
+
+const sfx = {
+  click: () => tone(660, 0.05, 'triangle', 0.05),
+  hit: () => tone(180, 0.12, 'square', 0.05, 0, -90),
+  crit: () => { tone(240, 0.14, 'sawtooth', 0.06, 0, -140); tone(120, 0.12, 'square', 0.04, 0.05); },
+  miss: () => tone(900, 0.08, 'sine', 0.03, 0, 400),
+  heal: () => { tone(523, 0.1, 'sine', 0.05); tone(784, 0.14, 'sine', 0.05, 0.07); },
+  heart: () => { tone(880, 0.07, 'sine', 0.05); tone(1175, 0.1, 'sine', 0.05, 0.06); },
+  befriend: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.18, 'triangle', 0.06, i * 0.09)),
+  flee: () => tone(400, 0.25, 'triangle', 0.05, 0, -300),
+  faint: () => tone(220, 0.4, 'sine', 0.06, 0, -160),
+  buff: () => tone(700, 0.1, 'triangle', 0.04, 0, 300),
+  coin: () => { tone(1320, 0.06, 'square', 0.03); tone(1760, 0.1, 'square', 0.03, 0.05); },
+  win: () => [392, 523, 659, 784].forEach((f, i) => tone(f, 0.22, 'triangle', 0.06, i * 0.12)),
+  lose: () => [392, 330, 262, 196].forEach((f, i) => tone(f, 0.3, 'sine', 0.06, i * 0.16)),
+};
+
+return { setSound, sfx };
+})();
+// ── src/ui/app.js ──
+const __m_src_ui_app_js = (() => {
+// 달빛 숲의 몬무스 — 화면/입력 담당
+const { SPECIES, SKILLS, ITEMS, RELICS, STATUSES, ELEMENTS, STARTERS } = __m_src_core_data_js;
+const { hashString } = __m_src_core_rng_js;
+const { xpToNext, unlockedSkills, SKILL_UNLOCK } = __m_src_core_units_js;
+const { newRun, serializeRun, deserializeRun, availableNodes, enterNode, finishBattle, joinParty, declineRecruit, restHeal, restTrain, buy, gainRelic, advanceAct, beginBattle, useItemOutside, ACT_NAMES, MAP_ROWS } = __m_src_core_run_js;
+const { alive, canAct, usableSkills, needsTarget, validTargets, allyAct, keeperTalk, useItem, endPlayerTurn, findUnit, livingEnemies, receptivity, josa } = __m_src_core_battle_js;
+const { autoTurn, befriendTarget } = __m_src_core_ai_js;
+const { pickEvent, eventById } = __m_src_core_events_js;
+const { NODE_TYPES } = __m_src_core_map_js;
+const { portraitSVG, expressionFor } = __m_src_ui_portrait_js;
+const { loadMeta, saveMeta, loadRunJson, saveRunJson, clearRun } = __m_src_ui_store_js;
+const { sfx, setSound } = __m_src_ui_audio_js;
+
+const app = document.getElementById('app');
+const S = {
+  screen: 'title',
+  run: null,
+  battle: null,
+  meta: loadMeta(),
+  ui: {},
+  pending: null,
+  modal: null,
+};
+setSound(S.meta.sound);
+
+const wait = (ms) => new Promise((r) => setTimeout(r, ms / (S.meta.speed || 1)));
+const $ = (sel, root = document) => root.querySelector(sel);
+const pct = (a, b) => `${Math.max(0, Math.min(100, (a / Math.max(1, b)) * 100)).toFixed(1)}%`;
+const 이가 = (w) => w + josa(w, '이', '가');
+const 을를 = (w) => w + josa(w, '을', '를');
+const 은는 = (w) => w + josa(w, '은', '는');
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+function markSeen(species, friend = false) {
+  const m = S.meta;
+  if (!m.seen.includes(species)) m.seen.push(species);
+  if (friend && !m.friends.includes(species)) m.friends.push(species);
+  saveMeta(m);
+}
+
+// ── 공용 조각 ───────────────────────────────────────────────
+function pic(species, expr = 'normal', bg = true) {
+  const el = SPECIES[species].element;
+  const style = bg ? ` style="background: radial-gradient(circle at 50% 38%, ${ELEMENTS[el].color}55, transparent 70%)"` : '';
+  return `<div class="pic"${style}>${portraitSVG(species, expr)}</div>`;
+}
+
+function hpBar(cur, max, shield = 0) {
+  const low = cur / max < 0.3 ? ' low' : '';
+  const sh = shield ? `<span class="shield" style="width:${pct(Math.min(shield, max), max)}"></span>` : '';
+  return `<div class="barline"><span class="lbl">❤</span><div class="bar hp${low}"><i style="width:${pct(cur, max)}"></i>${sh}</div><span class="val" data-hpv>${Math.max(0, cur)}/${max}</span></div>`;
+}
+function bondBar(cur, max) {
+  return `<div class="barline"><span class="lbl">💗</span><div class="bar bond"><i style="width:${pct(cur, max)}"></i></div><span class="val" data-bondv>${Math.round((cur / max) * 100)}%</span></div>`;
+}
+function statusChips(u) {
+  return Object.entries(u.st || {}).filter(([k, v]) => v && STATUSES[k]).map(([k, v]) => {
+    const s = STATUSES[k];
+    return `<span class="st${s.bad ? ' bad' : ''}" title="${s.name}: ${s.desc}">${s.icon}${k === 'shield' || k === 'poison' ? v : v > 1 ? v : ''}</span>`;
+  }).join('');
+}
+function elemTag(el) { return `<span class="tag" title="${ELEMENTS[el].name} 속성">${ELEMENTS[el].icon}${ELEMENTS[el].name}</span>`; }
+
+const KIND_ICON = { attack: '⚔️', charm: '💗', heal: '💚', buff: '⬆️', debuff: '🌀', summon: '📣', wait: '💭' };
+function skillLine(id, unit) {
+  const s = SKILLS[id];
+  const cd = s.cd ? ` · 재사용 ${s.cd}턴` : '';
+  const pw = s.power ? ` · 위력 ${s.power}${s.hits > 1 ? `×${s.hits}` : ''}` : '';
+  const lock = unit && !unlockedSkills(unit).includes(id) ? ` <span class="muted">(Lv.${SKILL_UNLOCK[SPECIES[unit.species].skills.indexOf(id)]} 해금)</span>` : '';
+  return `<div>${KIND_ICON[s.kind] || ''} <b>${s.name}</b>${lock} <span class="muted">${s.desc}${pw}${cd}</span></div>`;
+}
+
+function relicBar(run) {
+  return `<div class="relics">${run.relics.map((r) => `<button class="relic btn ghost small" data-act="relicInfo" data-id="${r}" title="${RELICS[r].name}: ${RELICS[r].desc}" aria-label="${RELICS[r].name}">${RELICS[r].icon}</button>`).join('')}</div>`;
+}
+
+function topbar() {
+  const r = S.run;
+  const node = r.nodeId ? r.map.nodes[r.nodeId] : null;
+  const floor = node ? (node.type === 'boss' ? '보스' : `${node.row + 1}층`) : '입구';
+  const items = Object.entries(r.items).map(([k, n]) => `${ITEMS[k].icon}${n}`).join(' ');
+  return `<div class="topbar">
+    <span class="title">${r.act}막 · ${ACT_NAMES[r.act - 1]}</span>
+    <span class="tag">${floor}</span>
+    <span class="tag num">🪙 ${r.gold}</span>
+    <span class="tag" title="가방">${items || '빈 가방'}</span>
+    <span class="spacer"></span>
+    ${relicBar(r)}
+    <button class="btn ghost small" data-act="menu" aria-label="메뉴">☰</button>
+  </div>`;
+}
+
+// ── 화면 렌더링 ─────────────────────────────────────────────
+function render() {
+  const fn = SCREENS[S.screen];
+  app.innerHTML = fn ? fn() : '';
+  renderModal();
+  if (S.screen === 'battle') afterBattleRender();
+}
+
+function renderModal() {
+  let back = $('.modal-back');
+  if (!S.modal) { if (back) back.remove(); return; }
+  if (!back) { back = document.createElement('div'); back.className = 'modal-back'; document.body.appendChild(back); }
+  back.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${S.modal()}</div>`;
+}
+function openModal(fn) { S.modal = fn; renderModal(); }
+function closeModal() { S.modal = null; renderModal(); }
+
+const SCREENS = {};
+
+// ── 타이틀 ─────────────────────────────────────────────────
+SCREENS.title = () => {
+  const hasSave = !!loadRunJson();
+  const m = S.meta;
+  const totalSp = Object.keys(SPECIES).length;
+  return `<section class="stack title-screen">
+    <div class="title-art" aria-hidden="true"><div class="moon"></div>
+      <div class="cast">${portraitSVG('kitsune', 'happy')}${portraitSVG('slime', 'normal')}${portraitSVG('mandrake', 'shy')}</div>
+    </div>
+    <h1 class="logo">달빛 숲의 몬무스<small>MOONLIT · MONMUSU</small></h1>
+    <p class="muted" style="max-width:46ch;margin:0">달빛을 잃은 숲. 등불지기인 당신은 숲의 몬스터 소녀들과 싸우거나, 마음을 열어 친구가 되며 달의 마녀가 있는 성으로 향합니다.</p>
+    <div class="title-menu">
+      ${hasSave ? '<button class="btn primary" data-act="continue">이어하기</button>' : ''}
+      <button class="btn ${hasSave ? '' : 'primary'}" data-act="newGame">새 모험</button>
+      <button class="btn" data-act="daily">오늘의 숲 (일일 시드)</button>
+      <div class="row center" style="gap:8px">
+        <button class="btn small" data-act="codex">📖 도감 ${m.friends.length}/${totalSp}</button>
+        <button class="btn small" data-act="help">❔ 도움말</button>
+        <button class="btn small" data-act="toggleSound">${m.sound ? '🔊' : '🔇'} 소리</button>
+      </div>
+    </div>
+    <div class="title-stats">모험 ${m.runs}회 · 클리어 ${m.wins}회 · 진엔딩 ${m.trueEnds}회</div>
+  </section>`;
+};
+
+// ── 첫 동료 선택 ───────────────────────────────────────────
+SCREENS.starter = () => `<section class="stack">
+  <div><div class="eyebrow">첫 번째 동료</div><h1 style="font-size:30px">누구와 함께 숲에 들어갈까요?</h1>
+  <p class="muted" style="margin:4px 0 0">시드 <span class="num">${S.ui.seed}</span></p></div>
+  <div class="starters">${STARTERS.map((id) => {
+    const sp = SPECIES[id];
+    return `<button class="panel starter" data-act="pickStarter" data-id="${id}">
+      ${pic(id, 'happy')}
+      <div class="row" style="justify-content:space-between"><h2 style="font-size:22px">${sp.given} <span class="muted small">${sp.name}</span></h2>${elemTag(sp.element)}</div>
+      <div class="tag" style="align-self:flex-start">${sp.role}</div>
+      <p class="small muted" style="margin:0">${sp.lore}</p>
+      <div class="skill-list">${sp.skills.slice(0, 3).map((s) => skillLine(s)).join('')}</div>
+      <div class="quote small">“${sp.lines.join}”</div>
+    </button>`;
+  }).join('')}</div>
+  <div class="row"><button class="btn ghost" data-act="toTitle">← 돌아가기</button></div>
+</section>`;
+
+// ── 지도 ───────────────────────────────────────────────────
+SCREENS.map = () => {
+  const r = S.run;
+  const open = new Set(availableNodes(r).map((n) => n.id));
+  const visited = new Set(r.visited || []);
+  const nodes = Object.values(r.map.nodes);
+  const rowH = 66;
+  const H = (MAP_ROWS + 1) * rowH;
+  const pos = (n) => ({ x: ((n.col + 0.5) / 4) * 100, y: (MAP_ROWS - n.row) * rowH + rowH / 2 });
+  let lines = '';
+  for (const n of nodes) {
+    for (const id of n.next) {
+      const a = pos(n); const b = pos(r.map.nodes[id]);
+      const hot = n.id === r.nodeId && open.has(id);
+      const done = visited.has(n.id) && (visited.has(id) || id === r.nodeId);
+      lines += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${hot ? 'var(--lantern)' : done ? 'var(--moon)' : 'var(--line)'}" stroke-width="${hot ? 2.5 : 1.6}" stroke-dasharray="${hot || done ? '0' : '4 5'}" vector-effect="non-scaling-stroke"/>`;
+    }
+  }
+  const nodeEls = nodes.map((n) => {
+    const p = pos(n);
+    const cls = ['node', n.type === 'boss' ? 'boss' : '', open.has(n.id) ? 'open' : '', visited.has(n.id) ? 'visited' : '', n.id === r.nodeId ? 'current' : ''].join(' ');
+    const t = NODE_TYPES[n.type];
+    return `<button class="${cls}" style="left:${p.x}%;top:${p.y}px" ${open.has(n.id) ? `data-act="go" data-id="${n.id}"` : 'tabindex="-1"'} title="${t.name}" aria-label="${t.name}">${t.icon}</button>`;
+  }).join('');
+  const legend = Object.entries(NODE_TYPES).map(([, t]) => `<span>${t.icon} ${t.name}</span>`).join('');
+  return `${topbar()}
+  <div class="map-wrap">
+    <section class="panel map">
+      <div class="eyebrow">${r.act}막</div>
+      <h2>${ACT_NAMES[r.act - 1]}</h2>
+      <p class="muted small" style="margin:2px 0 0">빛나는 칸을 눌러 다음 길을 고르세요. 맨 위에 이 숲의 주인이 기다립니다.</p>
+      <div class="map-board" style="height:${H}px">
+        <svg class="edges" viewBox="0 0 100 ${H}" preserveAspectRatio="none" aria-hidden="true">${lines}</svg>
+        ${nodeEls}
+      </div>
+      <div class="legend">${legend}</div>
+    </section>
+    <aside class="party-side">
+      <div class="eyebrow">동료 ${r.party.length}/${r.maxParty}</div>
+      ${r.party.map((u) => `<button class="mini${u.fainted ? ' fainted' : ''}" data-act="detail" data-uid="${u.uid}">
+        ${pic(u.species, u.fainted ? 'hurt' : 'normal')}
+        <div class="stack" style="gap:3px;min-width:0">
+          <div class="row" style="gap:6px;justify-content:space-between"><b style="font-family:var(--font-display);font-weight:400">${u.name}</b><span class="small muted">Lv.${u.level} ${ELEMENTS[u.element].icon}</span></div>
+          ${u.fainted ? '<span class="small" style="color:var(--danger)">기절 — 휴식이나 깃털로 회복</span>' : hpBar(u.hp, u.maxHp)}
+          <div class="bar xp" title="경험치"><i style="width:${pct(u.xp, xpToNext(u.level))}"></i></div>
+        </div>
+      </button>`).join('')}
+      <p class="small muted" style="margin:0">동료를 누르면 능력치·스킬을 보고 회복 아이템을 쓸 수 있어요.</p>
+    </aside>
+  </div>`;
+};
+
+function unitDetail(u) {
+  const sp = SPECIES[u.species];
+  const run = S.run;
+  const usable = ['potion', 'feather', 'elixir'].filter((k) => run && run.items[k] > 0 && run.party.includes(u));
+  return () => `
+    <div class="detail-head">${pic(u.species, u.fainted ? 'hurt' : 'happy')}
+      <div class="stack" style="gap:4px">
+        <h2>${u.name} <span class="muted small">${sp.name} · Lv.${u.level}</span></h2>
+        <div class="row" style="gap:6px">${elemTag(u.element)}<span class="tag">${sp.role}</span><span class="tag">좋아하는 것 ${ITEMS[sp.gift].icon}</span></div>
+        ${hpBar(u.hp, u.maxHp)}
+        <div class="small muted">경험치 ${u.xp}/${xpToNext(u.level)}</div>
+      </div>
+    </div>
+    <div class="stats"><div>HP<b>${u.maxHp}</b></div><div>공격<b>${u.atk}</b></div><div>방어<b>${u.def}</b></div><div>매력<b>${u.cha}</b></div><div>속도<b>${u.spd}</b></div></div>
+    <div class="skill-list">${sp.skills.map((s) => skillLine(s, u)).join('')}</div>
+    <p class="small muted" style="margin:0">${sp.lore}</p>
+    ${usable.length ? `<div class="row">${usable.map((k) => `<button class="btn small" data-act="useOutside" data-id="${k}" data-uid="${u.uid}">${ITEMS[k].icon} ${ITEMS[k].name} 사용 (${run.items[k]})</button>`).join('')}</div>` : ''}
+    <div class="row end"><button class="btn" data-act="closeModal">닫기</button></div>`;
+}
+
+// ── 전투 ───────────────────────────────────────────────────
+function intentHtml(e) {
+  if (!e.intent || !alive(e)) return '';
+  if (e.st.sleep) return '<div class="intent">💤 잠듦</div>';
+  const s = SKILLS[e.intent.skill];
+  if (s.kind === 'wait') return '<div class="intent shy">💭 머뭇머뭇…</div>';
+  const t = e.intent.target != null ? findUnit(S.battle, e.intent.target) : null;
+  const tgt = s.target === 'allEnemies' ? ' → 전체' : t && t.side === 'ally' ? ` → ${t.name}` : '';
+  return `<div class="intent ${s.kind === 'attack' ? 'atk' : ''}" title="${s.name}: ${s.desc}">${KIND_ICON[s.kind]} ${s.name}${tgt}</div>`;
+}
+
+function unitCard(u) {
+  const b = S.battle;
+  const ui = S.ui;
+  const cls = ['unit', u.side];
+  if (u.side === 'ally') {
+    if (canAct(b, u) && !ui.busy) cls.push('ready');
+    if (ui.selected === u.uid) cls.push('selected');
+    if (b.acted.includes(u.uid) || u.st.sleep) cls.push('acted');
+    if (u.fainted) cls.push('fainted');
+  }
+  if (u.gone) cls.push('gone', u.gone);
+  const tg = targetsNow();
+  let act = '';
+  if (tg && tg.has(u.uid)) { cls.push('targetable'); if (u.side === 'enemy' && ui.targetMode === 'harm') cls.push('foe-t'); act = `data-act="target" data-uid="${u.uid}"`; }
+  else if (u.side === 'ally' && canAct(b, u)) act = `data-act="select" data-uid="${u.uid}"`;
+  else act = `data-act="inspect" data-uid="${u.uid}"`;
+  const sp = SPECIES[u.species];
+  const badge = u.boss ? '<span class="badge">👑</span>' : u.elite ? '<span class="badge">💢</span>' : '';
+  const goneTxt = u.gone === 'friend' ? '<div class="small" style="color:var(--heart)">💗 친구가 되었다!</div>' : u.gone === 'fled' ? '<div class="small muted">도망쳤다</div>' : u.gone === 'left' ? '<div class="small muted">돌아갔다</div>' : '';
+  return `<button class="${cls.join(' ')}" data-uid="${u.uid}" ${act} aria-label="${u.name} ${sp.name}">
+    ${u.side === 'enemy' ? intentHtml(u) : ''}${badge}
+    ${pic(u.species, expressionFor(u))}
+    <div class="name"><b>${u.name}</b><span class="small muted">${sp.name} Lv.${u.level} ${ELEMENTS[u.element].icon}</span></div>
+    ${hpBar(u.hp, u.maxHp, u.st.shield || 0)}
+    ${u.side === 'enemy' ? bondBar(u.bond, u.bondMax) : ''}
+    <div class="sts">${statusChips(u)}${u.fainted ? '<span class="st bad">기절</span>' : ''}</div>
+    ${goneTxt}
+  </button>`;
+}
+
+/** 지금 고를 수 있는 대상 uid 집합 (없으면 null) */
+function targetsNow() {
+  const ui = S.ui; const b = S.battle;
+  if (!b || ui.busy) return null;
+  if (ui.pendingSkill) {
+    const u = findUnit(b, ui.selected);
+    const s = SKILLS[ui.pendingSkill];
+    ui.targetMode = s.kind === 'charm' ? 'charm' : 'harm';
+    return new Set(validTargets(b, u, s).map((x) => x.uid));
+  }
+  if (ui.pendingTalk) { ui.targetMode = 'charm'; return new Set(livingEnemies(b).map((x) => x.uid)); }
+  if (ui.pendingItem) {
+    const it = ITEMS[ui.pendingItem];
+    ui.targetMode = it.gift ? 'charm' : 'harm';
+    if (it.target === 'enemy') return new Set(livingEnemies(b).map((x) => x.uid));
+    if (it.target === 'ally') return new Set(b.allies.filter(alive).map((x) => x.uid));
+    if (it.target === 'fallenAlly') return new Set(b.allies.filter((x) => x.fainted).map((x) => x.uid));
+  }
+  return null;
+}
+
+SCREENS.battle = () => {
+  const b = S.battle; const ui = S.ui; const run = S.run;
+  const sel = ui.selected != null ? findUnit(b, ui.selected) : null;
+  const kindLbl = b.kind === 'boss' ? '👑 보스전' : b.kind === 'elite' ? '💢 강적' : `턴 ${b.turn}`;
+  let cmd = '';
+  if (b.phase === 'player') {
+    let skills = '';
+    if (sel && canAct(b, sel)) {
+      const usable = usableSkills(b, sel);
+      skills = unlockedSkills(sel).map((id, i) => {
+        const s = SKILLS[id];
+        const ok = usable.includes(id) && !ui.busy;
+        const cd = sel.cd[id] ? `⏳${sel.cd[id] - 1 || 1}` : s.cd ? `↻${s.cd}` : '';
+        return `<button class="btn skill k-${s.kind}${ui.pendingSkill === id ? ' selected' : ''}" data-act="skill" data-id="${id}" ${ok ? '' : 'disabled'} title="${s.desc}">
+          <span class="top"><span>${KIND_ICON[s.kind]} ${s.name}</span><span class="small muted">${i + 1} ${cd}</span></span>
+          <span class="desc">${s.desc}${s.power ? ` (위력 ${s.power}${s.hits > 1 ? `×${s.hits}` : ''})` : ''}</span></button>`;
+      }).join('');
+    }
+    const bag = Object.entries(run.items).map(([k, n]) => `<button class="btn small item-btn${ui.pendingItem === k ? ' selected' : ''}" data-act="item" data-id="${k}" ${b.keeperUsed || ui.busy ? 'disabled' : ''} title="${ITEMS[k].name}: ${ITEMS[k].desc}">${ITEMS[k].icon}<span class="n">${n}</span></button>`).join('');
+    const hint = ui.pendingSkill ? `${SKILLS[ui.pendingSkill].name}: 대상을 고르세요` : ui.pendingTalk ? '말을 걸 몬무스를 고르세요' : ui.pendingItem ? `${ITEMS[ui.pendingItem].name}: 대상을 고르세요` : sel && canAct(b, sel) ? '' : b.allies.some((u) => canAct(b, u)) ? '행동할 동료를 고르세요' : '모두 행동했어요. 턴을 마치세요';
+    cmd = `<section class="panel command">
+      ${sel && canAct(b, sel) ? `<div class="who">${sel.name}의 행동</div><div class="skills">${skills}</div>` : ''}
+      <div class="keeper"><span class="lbl">🏮 등불지기${b.keeperUsed ? ' (행동 완료)' : ''}</span>
+        <button class="btn small heart${ui.pendingTalk ? ' selected' : ''}" data-act="talk" ${b.keeperUsed || ui.busy ? 'disabled' : ''} title="적의 호감도를 조금 올린다">💬 말 걸기</button>
+        <div class="bag">${bag}</div>
+      </div>
+      <div class="hint">${hint}</div>
+      <div class="row end">
+        ${ui.pendingSkill || ui.pendingTalk || ui.pendingItem ? '<button class="btn ghost" data-act="cancel">취소</button>' : ''}
+        <button class="btn" data-act="auto" ${ui.busy ? 'disabled' : ''} title="남은 행동을 자동으로 정하고 턴을 마칩니다">⚙️ 자동</button>
+        <button class="btn primary" data-act="endTurn" ${ui.busy ? 'disabled' : ''}>턴 종료 ⏎</button>
+      </div>
+    </section>`;
+  }
+  return `${topbar()}
+  <section class="battle">
+    <div class="side enemies">${b.enemies.map(unitCard).join('')}</div>
+    <div class="vs">${kindLbl}</div>
+    <div class="log" aria-live="polite">${(ui.log || []).slice(-6).map((l) => `<p>${l}</p>`).join('')}</div>
+    <div class="side allies">${b.allies.map(unitCard).join('')}</div>
+    ${cmd}
+  </section>`;
+};
+
+function afterBattleRender() {
+  const log = $('.log');
+  if (log) log.scrollTop = log.scrollHeight;
+}
+
+function addLog(msg) {
+  S.ui.log = S.ui.log || [];
+  S.ui.log.push(msg);
+  if (S.ui.log.length > 40) S.ui.log.shift();
+  const log = $('.log');
+  if (log) {
+    log.innerHTML = S.ui.log.slice(-6).map((l) => `<p>${l}</p>`).join('');
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+function cardEl(uid) { return $(`.unit[data-uid="${uid}"]`); }
+function floatText(uid, text, cls) {
+  const el = cardEl(uid);
+  if (!el) return;
+  const f = document.createElement('div');
+  f.className = `float ${cls}`;
+  f.textContent = text;
+  el.appendChild(f);
+  setTimeout(() => f.remove(), 1000);
+}
+function speech(uid, line) {
+  const el = cardEl(uid);
+  if (!el || !line) return;
+  const s = document.createElement('div');
+  s.className = 'speech';
+  s.textContent = line;
+  el.appendChild(s);
+  setTimeout(() => s.remove(), 2600);
+}
+function retint(uid, disp) {
+  const el = cardEl(uid);
+  const u = findUnit(S.battle, uid);
+  if (!el || !u) return;
+  const d = disp[uid];
+  const hp = el.querySelector('.bar.hp');
+  if (hp) {
+    hp.querySelector('i').style.width = pct(d.hp, u.maxHp);
+    hp.classList.toggle('low', d.hp / u.maxHp < 0.3);
+    el.querySelector('[data-hpv]').textContent = `${Math.max(0, Math.round(d.hp))}/${u.maxHp}`;
+  }
+  const bd = el.querySelector('.bar.bond');
+  if (bd) {
+    bd.querySelector('i').style.width = pct(d.bond, u.bondMax);
+    el.querySelector('[data-bondv]').textContent = `${Math.round((d.bond / u.bondMax) * 100)}%`;
+  }
+  const p = el.querySelector('.pic');
+  if (p) p.innerHTML = portraitSVG(u.species, d.expr || expressionFor({ ...u, hp: d.hp, bond: d.bond, st: {} }));
+}
+
+/** 엔진 이벤트를 순서대로 연출한다. disp = 연출 시작 시점의 표시값 */
+async function play(events, disp) {
+  const b = S.battle;
+  for (const e of events) {
+    const u = e.uid != null ? findUnit(b, e.uid) : null;
+    const nm = u ? u.name : '';
+    switch (e.type) {
+      case 'action': {
+        const s = SKILLS[e.skill];
+        if (s.kind === 'wait') break;
+        addLog(`<b>${nm}</b>의 ${s.name}!`);
+        const el = cardEl(e.uid);
+        if (el) { el.classList.remove('lunge'); void el.offsetWidth; el.classList.add('lunge'); }
+        await wait(300);
+        break;
+      }
+      case 'damage': {
+        if (!disp[e.uid]) break;
+        disp[e.uid].hp -= e.amount;
+        const lbl = e.cause === 'poison' ? '☠️' : e.cause === 'burn' ? '🔥' : e.cause === 'thorn' ? '🌹' : '';
+        floatText(e.uid, `${lbl}-${e.amount}${e.crit ? '!' : ''}`, e.crit ? 'crit' : 'dmg');
+        if (e.eff === 'super') addLog('효과가 굉장했다!');
+        const el = cardEl(e.uid);
+        if (el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+        e.crit ? sfx.crit() : sfx.hit();
+        retint(e.uid, disp);
+        await wait(e.cause ? 220 : 260);
+        break;
+      }
+      case 'heal':
+        if (!disp[e.uid] || !e.amount) break;
+        disp[e.uid].hp += e.amount;
+        floatText(e.uid, `+${e.amount}`, 'heal');
+        sfx.heal();
+        retint(e.uid, disp);
+        await wait(200);
+        break;
+      case 'bond':
+        if (!disp[e.uid]) break;
+        disp[e.uid].bond = Math.max(0, disp[e.uid].bond + e.amount);
+        if (e.amount > 0) { floatText(e.uid, `💗+${Math.round((e.amount / u.bondMax) * 100)}%`, 'bond'); sfx.heart(); }
+        else floatText(e.uid, `💔${Math.round((e.amount / u.bondMax) * 100)}%`, 'miss');
+        retint(e.uid, disp);
+        await wait(e.amount > 0 ? 260 : 120);
+        break;
+      case 'miss': floatText(e.uid, '회피!', 'miss'); sfx.miss(); await wait(200); break;
+      case 'resist': floatText(e.uid, '버텼다!', 'miss'); await wait(160); break;
+      case 'block': floatText(e.uid, `🔰${e.amount}`, 'block'); await wait(150); break;
+      case 'status': {
+        const st = STATUSES[e.status];
+        if (st) { floatText(e.uid, `${st.icon}${st.name}`, st.bad ? 'miss' : 'heal'); if (!st.bad) sfx.buff(); }
+        await wait(140);
+        break;
+      }
+      case 'cleanse': floatText(e.uid, '✨정화', 'heal'); await wait(140); break;
+      case 'wake': addLog(`${nm}${josa(nm, '이', '가')} 깨어났다.`); break;
+      case 'sleeping': addLog(`${nm}${josa(nm, '은', '는')} 쿨쿨 자고 있다…`); await wait(200); break;
+      case 'gold': floatText(e.uid, `🪙+${e.amount}`, 'heal'); sfx.coin(); await wait(150); break;
+      case 'speech': speech(e.uid, e.line); await wait(500); break;
+      case 'text':
+        addLog(e.msg);
+        if (e.shy && e.uid != null) { disp[e.uid].expr = 'shy'; retint(e.uid, disp); delete disp[e.uid].expr; floatText(e.uid, '///', 'bond'); }
+        await wait(280);
+        break;
+      case 'keeper':
+        if (e.action === 'talk') { addLog(`등불지기가 ${nm}에게 말을 걸었다.`); speech(e.uid, talkLine(u)); }
+        else addLog(`등불지기가 ${ITEMS[e.item].icon} ${ITEMS[e.item].name}${josa(ITEMS[e.item].name, '을', '를')} 사용했다.`);
+        await wait(280);
+        break;
+      case 'befriend': {
+        sfx.befriend();
+        addLog(`💗 <b>${nm}</b>${josa(nm, '이', '가')} 마음을 열었다!`);
+        disp[e.uid].expr = 'love';
+        retint(e.uid, disp);
+        speech(e.uid, e.line);
+        const el = cardEl(e.uid);
+        if (el) el.classList.add('gone', 'friend');
+        markSeen(u.species, true);
+        await wait(1100);
+        break;
+      }
+      case 'flee': {
+        sfx.flee();
+        addLog(`${nm}${josa(nm, '은', '는')} 도망쳤다.`);
+        speech(e.uid, e.line);
+        const el = cardEl(e.uid);
+        if (el) el.classList.add('gone');
+        await wait(700);
+        break;
+      }
+      case 'leave': { const el = cardEl(e.uid); if (el) el.classList.add('gone'); break; }
+      case 'faint': {
+        sfx.faint();
+        addLog(`${nm}${josa(nm, '이', '가')} 쓰러졌다…`);
+        const el = cardEl(e.uid);
+        if (el) el.classList.add('fainted');
+        await wait(500);
+        break;
+      }
+      case 'revive': floatText(e.uid, '부활!', 'heal'); sfx.heal(); addLog(`${nm}${josa(nm, '이', '가')} 다시 일어났다!`); render(); await wait(300); break;
+      case 'summon': addLog(`${nm}${josa(nm, '이', '가')} 나타났다!`); render(); Object.assign(disp, snapshot()); markSeen(u.species); await wait(400); break;
+      case 'escape': addLog('연막 속으로 도망쳤다!'); await wait(400); break;
+      case 'turn':
+        if (e.side === 'enemy') { addLog('— 몬무스들의 차례 —'); await wait(250); }
+        break;
+      default: break;
+    }
+  }
+}
+
+function talkLine(u) {
+  const lines = ['…뭐야, 갑자기.', '흐응, 무슨 얘기?', '너 이상한 인간이네.', '…조금은 들어줄게.', '그, 그렇게 말해도…'];
+  if (!u) return '';
+  const br = u.bond / u.bondMax;
+  if (br > 0.6) return SPECIES[u.species].lines.shy;
+  return lines[(u.uid + S.battle.turn) % lines.length];
+}
+
+function snapshot() {
+  const b = S.battle;
+  const d = {};
+  for (const u of [...b.allies, ...b.enemies]) d[u.uid] = { hp: u.hp, bond: u.bond };
+  return d;
+}
+
+async function runAction(fn) {
+  if (S.ui.busy) return;
+  const disp = snapshot();
+  let ev;
+  try { ev = fn(); } catch (err) { toast(err.message); return; }
+  S.ui.busy = true;
+  S.ui.pendingSkill = S.ui.pendingItem = null; S.ui.pendingTalk = false;
+  // 버튼만 비활성화한 화면에서 연출
+  render();
+  for (const [uid, d] of Object.entries(disp)) { if (findUnit(S.battle, Number(uid))) retint(Number(uid), disp); void d; }
+  await play(ev, disp);
+  S.ui.busy = false;
+  autoSelect();
+  render();
+  await checkBattleOver();
+}
+
+function autoSelect() {
+  const b = S.battle;
+  const cur = b.allies.find((u) => u.uid === S.ui.selected);
+  if (cur && canAct(b, cur)) return;
+  const next = b.allies.find((u) => canAct(b, u));
+  S.ui.selected = next ? next.uid : null;
+}
+
+async function checkBattleOver() {
+  const b = S.battle;
+  if (b.phase === 'won' || b.phase === 'lost' || b.phase === 'fled') {
+    await wait(600);
+    if (b.phase === 'won') sfx.win();
+    if (b.phase === 'lost') sfx.lose();
+    concludeBattle();
+  }
+}
+
+function startBattle(battle) {
+  S.battle = battle;
+  S.ui = { selected: null, log: [], busy: false };
+  for (const e of battle.enemies) markSeen(e.species);
+  const names = battle.enemies.map((e) => e.name).join(', ');
+  addLog(battle.kind === 'boss' ? `👑 ${names}${josa(names, '이', '가')} 앞을 가로막는다!` : `야생의 ${names}${josa(names, '이', '가')} 나타났다!`);
+  autoSelect();
+  S.screen = 'battle';
+  render();
+  const first = battle.enemies[0];
+  setTimeout(() => speech(first.uid, SPECIES[first.species].lines.intro), 250);
+  if (battle.events.length) { const disp = snapshot(); play(battle.events.filter((e) => e.type !== 'turn'), disp); battle.events = []; }
+}
+
+function concludeBattle() {
+  const b = S.battle;
+  const run = S.run;
+  const res = finishBattle(run, b);
+  if (b.phase === 'lost') return gameOver();
+  if (b.phase === 'fled') { toast('무사히 도망쳤다!'); return toMap(); }
+  for (const r of res.recruits) markSeen(r.species, true);
+  S.pending = {
+    result: res,
+    kind: b.kind,
+    bossNode: b.kind === 'boss' && run.nodeId === 'boss',
+    bossFriend: b.befriended.some((e) => e.boss),
+    befriended: b.befriended.map((e) => e.name),
+    relicPicked: !res.relicChoices.length,
+    recruits: res.recruits.slice(),
+  };
+  S.battle = null;
+  S.screen = 'reward';
+  render();
+}
+
+// ── 보상 ───────────────────────────────────────────────────
+SCREENS.reward = () => {
+  const p = S.pending; const res = p.result;
+  const lv = res.levelUps.map((l) => `<div>⬆️ <b>${l.name}</b> Lv.${l.from} → Lv.${l.to}${newSkillNote(l)}</div>`).join('');
+  const items = res.items.map((i) => `${ITEMS[i].icon} ${ITEMS[i].name}`).join(', ');
+  const relics = !p.relicPicked ? `<div class="stack"><div class="eyebrow">부적을 하나 고르세요</div><div class="reward-grid">${res.relicChoices.map((id) => `<button class="btn relic-card" data-act="pickRelic" data-id="${id}"><span class="ic">${RELICS[id].icon}</span><b>${RELICS[id].name}</b><span class="small muted">${RELICS[id].desc}</span></button>`).join('')}</div><div class="row end"><button class="btn ghost small" data-act="skipRelic">건너뛰기</button></div></div>` : '';
+  return `${topbar()}<section class="panel stack">
+    <div class="eyebrow">${p.kind === 'boss' ? '보스 격파' : '전투 승리'}</div>
+    <h2 style="font-size:26px">${p.befriended.length ? `${p.befriended.join(', ')}${josa(p.befriended[p.befriended.length - 1], '과', '와')} 친구가 되었다!` : '숲이 다시 조용해졌다.'}</h2>
+    <div class="row"><span class="tag num">🪙 +${res.gold}</span><span class="tag num">✨ 경험치 +${res.xp}</span>${items ? `<span class="tag">${items}</span>` : ''}</div>
+    ${lv ? `<div class="stack" style="gap:4px">${lv}</div>` : ''}
+    ${relics}
+    ${p.relicPicked ? '<div class="row end"><button class="btn primary" data-act="rewardNext">계속 →</button></div>' : ''}
+  </section>`;
+};
+
+function newSkillNote(l) {
+  const u = S.run.party.find((x) => x.uid === l.uid);
+  if (!u) return '';
+  const sp = SPECIES[u.species];
+  const learned = sp.skills.filter((_, i) => SKILL_UNLOCK[i] > l.from && SKILL_UNLOCK[i] <= l.to);
+  return learned.length ? ` <span style="color:var(--lantern)">· 새 스킬 ${learned.map((s) => SKILLS[s].name).join(', ')}!</span>` : '';
+}
+
+function rewardNext() {
+  const p = S.pending;
+  if (p.recruits.length) return showRecruit(p.recruits.shift(), rewardNext);
+  S.pending = null;
+  if (p.bossNode) {
+    const r = advanceAct(S.run, p.bossFriend);
+    if (r.ending) return ending(r.ending);
+    S.screen = 'actclear';
+    S.ui = { bossFriend: p.bossFriend };
+    return render();
+  }
+  toMap();
+}
+
+function showRecruit(recruit, after) {
+  const run = S.run;
+  const sp = SPECIES[recruit.species];
+  const full = run.party.length >= run.maxParty;
+  S.ui.recruit = recruit;
+  S.ui.afterRecruit = after;
+  openModal(() => `
+    <div class="eyebrow">새 동료</div>
+    <div class="recruit-pic">${portraitSVG(recruit.species, 'love')}</div>
+    <h2 style="text-align:center">${recruit.name} <span class="muted small">${sp.name} · Lv.${recruit.level}</span></h2>
+    <div class="quote">“${sp.lines.join}”</div>
+    <div class="row center">${elemTag(sp.element)}<span class="tag">${sp.role}</span></div>
+    <div class="skill-list">${sp.skills.map((s) => skillLine(s, recruit)).join('')}</div>
+    ${full ? `<div class="stack" style="gap:6px"><div class="small muted">파티가 가득 찼어요 (${run.party.length}/${run.maxParty}). 대신 작별할 동료를 고르거나, 마음만 받고 보낼 수 있어요.</div>
+      <div class="row">${run.party.map((u) => `<button class="btn small" data-act="swapRecruit" data-uid="${u.uid}">${u.name} Lv.${u.level}와 작별</button>`).join('')}</div></div>` : ''}
+    <div class="row end">
+      <button class="btn ghost" data-act="declineRecruit">마음만 받을게 (답례 받기)</button>
+      ${full ? '' : '<button class="btn primary" data-act="acceptRecruit">함께 가자!</button>'}
+    </div>`);
+}
+
+function finishRecruit() {
+  const after = S.ui.afterRecruit;
+  S.ui.recruit = null;
+  closeModal();
+  after?.();
+}
+
+// ── 막 클리어 / 엔딩 / 게임오버 ─────────────────────────────
+const ACT_STORY = [
+  ['드라이어드 실바의 숲을 지나자, 멀리서 화산의 붉은 빛이 보인다.', '“달빛을 되찾고 싶다면 불꽃 골짜기의 용을 만나거라. 그 아이도 외로울 테니.”'],
+  ['용 공주의 둥지 너머, 검은 성이 달 없는 하늘에 우뚝 서 있다.', '“…마녀는 원래 다정한 아이였다. 누군가 차를 같이 마셔줄 사람이 필요했을 뿐이야.”'],
+];
+SCREENS.actclear = () => {
+  const r = S.run;
+  const story = ACT_STORY[r.act - 2] || ['', ''];
+  return `<section class="panel stack ending">
+    <div class="eyebrow">${r.act - 1}막 클리어</div>
+    <h1 style="font-size:32px">${ACT_NAMES[r.act - 1]}으로</h1>
+    <div class="cast">${r.party.map((u) => portraitSVG(u.species, 'happy')).join('')}</div>
+    <p>${story[0]}</p>
+    ${S.ui.bossFriend ? `<p class="quote" style="max-width:52ch">${story[1]}</p>` : ''}
+    <p class="muted small">막 사이에서 푹 쉬었다. 모두 완전히 회복했다.</p>
+    <button class="btn primary" data-act="toMap">${r.act}막으로 출발</button>
+  </section>`;
+};
+
+function ending(kind) {
+  const m = S.meta;
+  m.runs++; m.wins++; if (kind === 'true') m.trueEnds++;
+  saveMeta(m);
+  clearRun();
+  S.screen = 'ending';
+  S.ui = { ending: kind };
+  render();
+}
+
+SCREENS.ending = () => {
+  const r = S.run;
+  const tr = S.ui.ending === 'true';
+  const st = r.stats;
+  return `<section class="panel stack ending">
+    <div class="eyebrow">${tr ? '진엔딩' : '엔딩'}</div>
+    <h1 style="font-size:34px">${tr ? '달이 다시 떠오르다' : '되찾은 달빛'}</h1>
+    <div class="cast">${r.party.map((u) => portraitSVG(u.species, 'happy')).join('')}${tr ? portraitSVG('witch', 'love') : ''}</div>
+    ${tr ? `<p>마녀 녹스는 성의 창문을 활짝 열었다. 갇혀 있던 달빛이 숲으로 쏟아져 내린다.</p>
+      <p class="quote">“…매주 목요일엔 차 마시러 와. 약속이야. 안 오면 달을 또 숨길 거야.”</p>
+      <p>그날 이후, 달빛 숲에는 밤마다 작은 다과회가 열린다고 한다.</p>`
+    : `<p>마녀가 사라지자 성에 갇혀 있던 달빛이 풀려났다. 숲은 다시 은빛으로 빛난다.</p>
+      <p class="muted">하지만 어딘가에서, 아무도 없는 성의 찻잔 두 개가 식어가고 있었다… (달의 마녀와 친구가 되면 진엔딩)</p>`}
+    <div class="row center"><span class="tag">전투 ${st.battles}</span><span class="tag">친구 ${st.befriended.length}종</span><span class="tag">획득 골드 ${st.goldEarned}</span><span class="tag">시드 ${r.seed}</span></div>
+    <button class="btn primary" data-act="toTitle">타이틀로</button>
+  </section>`;
+};
+
+function gameOver() {
+  const m = S.meta;
+  m.runs++;
+  m.best = Math.max(m.best, S.run.floor);
+  saveMeta(m);
+  clearRun();
+  S.battle = null;
+  S.screen = 'gameover';
+  render();
+}
+
+SCREENS.gameover = () => {
+  const r = S.run; const st = r.stats;
+  return `<section class="panel stack ending">
+    <div class="eyebrow">모험 종료</div>
+    <h1 style="font-size:32px">등불이 꺼졌다…</h1>
+    <div class="cast">${r.party.map((u) => portraitSVG(u.species, 'hurt')).join('')}</div>
+    <p>${r.act}막 ${ACT_NAMES[r.act - 1]}에서 쓰러졌다. 하지만 숲에서 만난 인연은 도감에 남는다.</p>
+    <div class="row center"><span class="tag">도달 층 ${r.floor}</span><span class="tag">전투 ${st.battles}</span><span class="tag">친구 ${st.befriended.length}종</span><span class="tag">시드 ${r.seed}</span></div>
+    <div class="row center"><button class="btn primary" data-act="newGame">다시 도전</button><button class="btn" data-act="toTitle">타이틀로</button></div>
+  </section>`;
+};
+
+// ── 이벤트 ─────────────────────────────────────────────────
+SCREENS.event = () => {
+  const ev = eventById(S.ui.eventId);
+  const out = S.ui.outcome;
+  const run = S.run;
+  return `${topbar()}<section class="panel scene">
+    <div class="art" aria-hidden="true">${ev.art}</div>
+    <div class="stack">
+      <h2>${ev.title}</h2>
+      <p>${ev.text}</p>
+      ${out ? `<p class="result">${out.text}</p><div class="row end"><button class="btn primary" data-act="eventDone">계속 →</button></div>`
+    : `<div class="choices">${ev.choices.map((c, i) => {
+      const ok = !c.req || c.req(run);
+      return `<button class="btn choice" data-act="choose" data-i="${i}" ${ok ? '' : 'disabled'}>${c.label}${ok ? '' : ' <span class="muted small">(조건 부족)</span>'}</button>`;
+    }).join('')}</div>`}
+    </div>
+  </section>`;
+};
+
+// ── 상점 ───────────────────────────────────────────────────
+SCREENS.shop = () => {
+  const shop = S.ui.shop; const run = S.run;
+  return `${topbar()}<section class="panel stack">
+    <div class="scene" style="grid-template-columns:120px minmax(0,1fr)"><div class="art" style="width:120px;height:120px">${portraitSVG('mimic', 'happy')}</div>
+      <div><h2>떠돌이 상점</h2><p class="quote small" style="margin:6px 0 0">“어서 와~ 반짝이는 거 있으면 좀 보여줄래? …아, 돈도 받아!”</p></div></div>
+    <div class="shop-grid">${shop.goods.map((g, i) => {
+    const info = g.kind === 'item' ? ITEMS[g.id] : g.kind === 'relic' ? RELICS[g.id] : { icon: '♨️', name: '찜질 치료', desc: '동료 전원 부활 + HP 완전 회복.' };
+    const owned = g.kind === 'item' && run.items[g.id] ? ` <span class="muted small">(보유 ${run.items[g.id]})</span>` : '';
+    return `<div class="panel good${g.sold ? ' sold' : ''}"><div class="head"><span class="ic">${info.icon}</span>${info.name}${owned}</div>
+      <div class="small muted">${info.desc}</div>
+      <div class="row" style="justify-content:space-between"><span class="price">🪙 ${g.price}</span>
+      <button class="btn small" data-act="buy" data-i="${i}" ${g.sold || run.gold < g.price ? 'disabled' : ''}>${g.sold ? '판매 완료' : '구매'}</button></div></div>`;
+  }).join('')}</div>
+    <div class="row end"><button class="btn primary" data-act="toMap">떠나기 →</button></div>
+  </section>`;
+};
+
+// ── 휴식 ───────────────────────────────────────────────────
+SCREENS.rest = () => {
+  const run = S.run;
+  return `${topbar()}<section class="panel scene">
+    <div class="art" aria-hidden="true">🔥</div>
+    <div class="stack">
+      <h2>모닥불</h2>
+      <p>타닥타닥, 불꽃이 춤춘다. 동료들이 불가에 둘러앉았다. 무엇을 할까?</p>
+      <div class="choices">
+        <button class="btn choice" data-act="restHeal">😴 푹 쉰다 — 모두 HP 40% 회복, 쓰러진 동료도 일어난다</button>
+        <div class="small muted">🗡️ 함께 훈련한다 — 한 명이 레벨 1 상승</div>
+        <div class="row">${run.party.map((u) => `<button class="btn small" data-act="restTrain" data-uid="${u.uid}">${u.name} Lv.${u.level}→${u.level + 1}</button>`).join('')}</div>
+      </div>
+    </div>
+  </section>`;
+};
+
+// ── 보물 ───────────────────────────────────────────────────
+SCREENS.treasure = () => {
+  const loot = S.ui.loot;
+  return `${topbar()}<section class="panel scene">
+    <div class="art" aria-hidden="true">🎁</div>
+    <div class="stack">
+      <h2>낡은 보물상자</h2>
+      <p>이번엔 진짜 상자다. 물지 않는다.</p>
+      <div class="row"><span class="tag num">🪙 +${loot.gold}</span>${loot.items.map((i) => `<span class="tag">${ITEMS[i].icon} ${ITEMS[i].name}</span>`).join('')}</div>
+      ${loot.relicChoices.length && !S.ui.picked ? `<div class="eyebrow">부적 하나를 챙길 수 있다</div><div class="reward-grid">${loot.relicChoices.map((id) => `<button class="btn relic-card" data-act="treasureRelic" data-id="${id}"><span class="ic">${RELICS[id].icon}</span><b>${RELICS[id].name}</b><span class="small muted">${RELICS[id].desc}</span></button>`).join('')}</div>` : ''}
+      <div class="row end"><button class="btn primary" data-act="toMap">계속 →</button></div>
+    </div>
+  </section>`;
+};
+
+// ── 도감 / 도움말 ─────────────────────────────────────────
+SCREENS.codex = () => {
+  const m = S.meta;
+  return `<section class="stack">
+    <div class="row" style="justify-content:space-between"><div><div class="eyebrow">몬무스 도감</div><h1 style="font-size:28px">친구 ${m.friends.length} / ${Object.keys(SPECIES).length}</h1></div><button class="btn" data-act="toTitle">← 타이틀</button></div>
+    <div class="codex">${Object.entries(SPECIES).map(([id, sp]) => {
+    const fr = m.friends.includes(id); const seen = m.seen.includes(id);
+    const cls = fr ? '' : seen ? 'seen' : 'unknown';
+    return `<div class="panel entry ${cls}">${pic(id, fr ? 'happy' : 'normal', fr)}
+      <b>${fr || seen ? `${sp.given} · ${sp.name}` : '???'}</b>
+      ${fr ? `<span class="small">${ELEMENTS[sp.element].icon} ${sp.role} · 💗 ${ITEMS[sp.gift].icon}</span><span class="small muted">${sp.lore}</span>` : seen ? '<span class="small muted">만난 적 있다. 아직 친구가 아니다.</span>' : '<span class="small muted">아직 만나지 못했다.</span>'}
+    </div>`;
+  }).join('')}</div>
+  </section>`;
+};
+
+SCREENS.help = () => `<section class="panel stack help">
+  <div class="row" style="justify-content:space-between"><h1 style="font-size:28px">도움말</h1><button class="btn" data-act="toTitle">← 타이틀</button></div>
+  <h3>목표</h3>
+  <p>3막으로 된 숲을 지나 달의 마녀 녹스에게 닿으세요. 지도에서 갈림길을 고르며 전투, 이벤트, 상점, 모닥불을 거칩니다.</p>
+  <h3>싸울까, 친구가 될까</h3>
+  <ul>
+    <li>몬무스는 <b>HP ❤</b>와 <b>호감도 💗</b>를 가지고 있어요. HP가 0이 되면 도망치고, 호감도가 가득 차면 <b>친구</b>가 되어 동료로 합류할 수 있어요.</li>
+    <li>💗 매혹 스킬, 등불지기의 <b>말 걸기</b>, <b>선물</b>로 호감도를 올립니다. 좋아하는 선물은 효과가 3배예요.</li>
+    <li>상처 입은 몬무스일수록 마음을 잘 열지만, 공격받으면 호감도가 조금 떨어져요.</li>
+    <li>보스는 HP가 절반 이하일 때까지 <b>마음의 벽</b>이 있어요. 먼저 싸운 뒤 마음을 두드리세요.</li>
+  </ul>
+  <h3>전투 조작</h3>
+  <ul>
+    <li>테두리가 빛나는 동료를 누르고 스킬을 고른 뒤, 대상을 누르세요. 숫자키 1–5로 스킬, Enter로 턴 종료, Esc로 취소.</li>
+    <li>등불지기(당신)는 매 턴 한 번 <b>말 걸기</b>나 <b>아이템</b>을 쓸 수 있어요.</li>
+    <li>적 머리 위의 말풍선은 다음 행동 예고예요. 공격 대상을 보고 막거나 회복하세요.</li>
+    <li>속성 상성: 🔥불 → 🍃숲 → 💧물 → 🔥불 (1.5배), ✨빛 ↔ 🌙어둠은 서로 1.5배.</li>
+  </ul>
+  <h3>그 밖에</h3>
+  <ul>
+    <li>쓰러진 동료는 전투가 끝나도 기절한 채예요. 모닥불이나 불사조 깃털로 일으키세요.</li>
+    <li>파티는 3명까지. 꽉 찼을 때 새 친구가 생기면 교체하거나 답례만 받을 수 있어요.</li>
+    <li>지도 화면에서 자동 저장됩니다.</li>
+  </ul>
+</section>`;
+
+// ── 흐름 ───────────────────────────────────────────────────
+function saveRun() { if (S.run && !S.run.over) saveRunJson(serializeRun(S.run)); }
+
+function toMap() {
+  S.screen = 'map';
+  S.battle = null;
+  S.ui = {};
+  saveRun();
+  render();
+  window.scrollTo({ top: 0 });
+}
+
+function startRun(seed) {
+  S.ui = { seed };
+  S.screen = 'starter';
+  render();
+}
+
+function go(nodeId) {
+  const run = S.run;
+  run.visited = run.visited || [];
+  let res;
+  try { res = enterNode(run, nodeId); } catch (e) { toast(e.message); return; }
+  run.visited.push(nodeId);
+  sfx.click();
+  switch (res.type) {
+    case 'battle': return startBattle(res.battle);
+    case 'shop': S.ui = { shop: res.shop }; S.screen = 'shop'; break;
+    case 'rest': S.ui = {}; S.screen = 'rest'; break;
+    case 'treasure': S.ui = { loot: res.loot }; S.screen = 'treasure'; sfx.coin(); break;
+    case 'event': { const ev = pickEvent(run); S.ui = { eventId: ev.id }; S.screen = 'event'; break; }
+  }
+  render();
+  window.scrollTo({ top: 0 });
+}
+
+const ACTIONS = {
+  continue() {
+    try { S.run = deserializeRun(loadRunJson()); } catch { toast('저장 데이터를 읽을 수 없어요'); clearRun(); return render(); }
+    toMap();
+  },
+  newGame() { startRun(Math.floor(Math.random() * 1e9)); },
+  daily() {
+    const d = new Date();
+    const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    startRun(hashString(`moonlit-${key}`) % 1e9);
+  },
+  pickStarter(el) {
+    S.run = newRun(S.ui.seed, el.dataset.id);
+    markSeen(el.dataset.id, true);
+    sfx.befriend();
+    toMap();
+  },
+  toTitle() { S.screen = 'title'; S.ui = {}; closeModal(); render(); },
+  toMap() { toMap(); },
+  codex() { S.screen = 'codex'; render(); },
+  help() { S.screen = 'help'; render(); },
+  toggleSound() { S.meta.sound = !S.meta.sound; setSound(S.meta.sound); saveMeta(S.meta); render(); },
+  menu() {
+    openModal(() => `<h2>메뉴</h2>
+      <div class="stack">
+        <div class="small muted">시드 <span class="num">${S.run.seed}</span></div>
+        <button class="btn" data-act="toggleSound">${S.meta.sound ? '🔊 소리 끄기' : '🔇 소리 켜기'}</button>
+        <button class="btn" data-act="speed">연출 속도: ${S.meta.speed >= 2 ? '빠르게' : '보통'}</button>
+        <button class="btn" data-act="helpModal">❔ 도움말</button>
+        <button class="btn" data-act="toTitleSave">타이틀로 (${S.screen === 'map' ? '저장됨' : '마지막 지도 시점에서 이어하기'})</button>
+        <button class="btn ghost" data-act="abandon">모험 포기하기</button>
+      </div>
+      <div class="row end"><button class="btn primary" data-act="closeModal">닫기</button></div>`);
+  },
+  speed() { S.meta.speed = S.meta.speed >= 2 ? 1 : 2; saveMeta(S.meta); ACTIONS.menu(); },
+  helpModal() { openModal(() => SCREENS.help().replace('data-act="toTitle"', 'data-act="closeModal"').replace('← 타이틀', '닫기')); },
+  toTitleSave() { closeModal(); S.screen = 'title'; render(); },
+  abandon() {
+    openModal(() => `<h2>정말 포기할까요?</h2><p>이번 모험의 진행이 사라집니다. 도감 기록은 남아요.</p>
+      <div class="row end"><button class="btn" data-act="menu">아니요</button><button class="btn primary" data-act="abandonYes">포기하기</button></div>`);
+  },
+  abandonYes() { clearRun(); S.meta.runs++; saveMeta(S.meta); closeModal(); S.screen = 'title'; render(); },
+  closeModal() { closeModal(); },
+  relicInfo(el) { const r = RELICS[el.dataset.id]; toast(`${r.icon} ${r.name} — ${r.desc}`); },
+  go(el) { go(el.dataset.id); },
+  detail(el) { const u = S.run.party.find((x) => x.uid === Number(el.dataset.uid)); if (u) openModal(unitDetail(u)); },
+  useOutside(el) {
+    const uid = Number(el.dataset.uid);
+    try { useItemOutside(S.run, el.dataset.id, uid); sfx.heal(); } catch (e) { return toast(e.message); }
+    saveRun();
+    const u = S.run.party.find((x) => x.uid === uid);
+    render();
+    openModal(unitDetail(u));
+  },
+
+  // 전투
+  select(el) { if (S.ui.busy) return; S.ui.selected = Number(el.dataset.uid); S.ui.pendingSkill = null; S.ui.pendingItem = null; S.ui.pendingTalk = false; sfx.click(); render(); },
+  inspect(el) {
+    const u = findUnit(S.battle, Number(el.dataset.uid));
+    if (!u) return;
+    if (u.side === 'ally') return openModal(unitDetail(u));
+    const sp = SPECIES[u.species];
+    openModal(() => `<div class="detail-head">${pic(u.species, expressionFor(u))}<div class="stack" style="gap:4px">
+      <h2>${u.name} <span class="muted small">${sp.name} · Lv.${u.level}${u.elite ? ' · 강적' : ''}</span></h2>
+      <div class="row" style="gap:6px">${elemTag(u.element)}<span class="tag">${sp.role}</span><span class="tag">좋아하는 것 ${ITEMS[sp.gift].icon} ${ITEMS[sp.gift].name}</span></div>
+      ${hpBar(u.hp, u.maxHp)}${bondBar(u.bond, u.bondMax)}
+      <div class="small muted">마음 여는 정도 ×${receptivity(u).toFixed(2)}${u.boss && u.hp > u.maxHp / 2 ? ' (마음의 벽!)' : ''}</div></div></div>
+      <div class="skill-list">${unlockedSkills(u).map((s) => skillLine(s)).join('')}</div>
+      <p class="small muted" style="margin:0">${sp.lore}</p>
+      <div class="row end"><button class="btn" data-act="closeModal">닫기</button></div>`);
+  },
+  skill(el) {
+    const ui = S.ui; const b = S.battle;
+    const u = findUnit(b, ui.selected);
+    const s = SKILLS[el.dataset.id];
+    if (!u || !canAct(b, u)) return;
+    ui.pendingItem = null; ui.pendingTalk = false;
+    if (needsTarget(s)) {
+      const ts = validTargets(b, u, s);
+      if (ts.length === 1 && s.target !== 'ally') return runAction(() => allyAct(b, S.run, S.run.rng, u.uid, s.id, ts[0].uid));
+      ui.pendingSkill = ui.pendingSkill === s.id ? null : s.id;
+      sfx.click();
+      return render();
+    }
+    runAction(() => allyAct(b, S.run, S.run.rng, u.uid, s.id, null));
+  },
+  target(el) {
+    const ui = S.ui; const b = S.battle; const uid = Number(el.dataset.uid);
+    if (ui.pendingSkill) { const sk = ui.pendingSkill; return runAction(() => allyAct(b, S.run, S.run.rng, ui.selected, sk, uid)); }
+    if (ui.pendingTalk) return runAction(() => keeperTalk(b, S.run, S.run.rng, uid));
+    if (ui.pendingItem) { const it = ui.pendingItem; return runAction(() => useItem(b, S.run, S.run.rng, it, uid)); }
+  },
+  talk() { const ui = S.ui; ui.pendingSkill = null; ui.pendingItem = null; ui.pendingTalk = !ui.pendingTalk; sfx.click(); render(); },
+  item(el) {
+    const ui = S.ui; const id = el.dataset.id; const it = ITEMS[id];
+    ui.pendingSkill = null; ui.pendingTalk = false;
+    if (it.target === 'allEnemies' || it.target === 'allAllies' || it.target === 'none') {
+      ui.pendingItem = null;
+      return runAction(() => useItem(S.battle, S.run, S.run.rng, id, null));
+    }
+    ui.pendingItem = ui.pendingItem === id ? null : id;
+    render();
+  },
+  cancel() { const ui = S.ui; ui.pendingSkill = ui.pendingItem = null; ui.pendingTalk = false; render(); },
+  endTurn() {
+    if (S.ui.busy || S.battle.phase !== 'player') return;
+    runAction(() => endPlayerTurn(S.battle, S.run, S.run.rng));
+  },
+  auto() {
+    if (S.ui.busy || S.battle.phase !== 'player') return;
+    const b = S.battle; const run = S.run;
+    const want = run.party.length < run.maxParty || b.kind === 'boss';
+    runAction(() => {
+      const ev = autoTurn(b, run, run.rng, { friendTarget: befriendTarget(b, run, want) });
+      if (b.phase === 'player') ev.push(...endPlayerTurn(b, run, run.rng));
+      return ev;
+    });
+  },
+
+  // 보상
+  pickRelic(el) { gainRelic(S.run, el.dataset.id); S.pending.relicPicked = true; sfx.coin(); render(); },
+  skipRelic() { S.pending.relicPicked = true; render(); },
+  rewardNext() { rewardNext(); },
+  acceptRecruit() {
+    const r = S.ui.recruit;
+    joinParty(S.run, r);
+    sfx.befriend();
+    toast(`${이가(r.name)} 동료가 되었다!`);
+    finishRecruit();
+  },
+  swapRecruit(el) {
+    const r = S.ui.recruit;
+    const old = S.run.party.find((u) => u.uid === Number(el.dataset.uid));
+    joinParty(S.run, r, old.uid);
+    sfx.befriend();
+    toast(`${은는(old.name)} 손을 흔들며 숲으로 돌아갔다. ${이가(r.name)} 합류했다!`);
+    finishRecruit();
+  },
+  declineRecruit() {
+    const r = S.ui.recruit;
+    const g = declineRecruit(S.run, r);
+    toast(`${이가(r.name)} 답례로 ${ITEMS[g.gift].icon}${ITEMS[g.gift].name}과 ${g.gold}G를 주었다.`);
+    finishRecruit();
+  },
+
+  // 이벤트
+  choose(el) {
+    const ev = eventById(S.ui.eventId);
+    const c = ev.choices[Number(el.dataset.i)];
+    if (c.req && !c.req(S.run)) return;
+    const out = c.run(S.run);
+    S.ui.outcome = out;
+    sfx.click();
+    render();
+  },
+  eventDone() {
+    const out = S.ui.outcome;
+    const cont = () => {
+      if (out.battle) return startBattle(beginBattle(S.run, out.battle.kind, out.battle.enemies));
+      toMap();
+    };
+    if (out.recruit) { markSeen(out.recruit.species, true); return showRecruit(out.recruit, cont); }
+    cont();
+  },
+
+  // 상점/휴식/보물
+  buy(el) {
+    try { const g = buy(S.run, S.ui.shop, Number(el.dataset.i)); sfx.coin(); if (g.kind === 'service') toast('개운하다! 모두 완전히 회복했다.'); } catch (e) { toast(e.message); }
+    render();
+  },
+  restHeal() { restHeal(S.run); sfx.heal(); toast('푹 쉬었다. 기운이 돌아온다.'); toMap(); },
+  restTrain(el) { const lv = restTrain(S.run, Number(el.dataset.uid)); sfx.buff(); toast(`훈련 완료! Lv.${lv}`); toMap(); },
+  treasureRelic(el) { gainRelic(S.run, el.dataset.id); S.ui.picked = true; sfx.coin(); render(); },
+};
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]');
+  if (!el || el.disabled) return;
+  const fn = ACTIONS[el.dataset.act];
+  if (fn) fn(el);
+});
+
+document.addEventListener('click', (e) => {
+  if (e.target.classList?.contains('modal-back') && S.modal && !S.ui.recruit) closeModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (S.modal && !S.ui.recruit) return closeModal();
+    if (S.screen === 'battle') ACTIONS.cancel();
+    return;
+  }
+  if (S.screen !== 'battle' || S.modal || S.ui.busy) return;
+  if (e.key === 'Enter') { e.preventDefault(); ACTIONS.endTurn(); return; }
+  const n = Number(e.key);
+  if (n >= 1 && n <= 5) {
+    const btn = document.querySelectorAll('.skill')[n - 1];
+    if (btn && !btn.disabled) ACTIONS.skill(btn);
+  }
+});
+
+// 뷰어가 페이지를 갱신해도 진행 중인 지도 상태를 지키기 위한 스냅숏 (claude.ai 아티팩트 전용)
+try { globalThis.claude?.hot?.snapshot?.(() => { saveRun(); return {}; }); } catch { /* 무시 */ }
+
+render();
+
+return {  };
+})();
+})();
+</script>
